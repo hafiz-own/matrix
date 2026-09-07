@@ -110,3 +110,6 @@ echo ""
 echo "=============================================="
 echo "     Welcome to the charms of The Matrix      "
 echo "=============================================="
+# Flush any lingering terminal capability responses (e.g., 2026;2$y) leaked by gum
+read -t 0.1 -s -r -d '' _ || true
+

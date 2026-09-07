@@ -1,15 +1,11 @@
 # ── AUR Helper (installed manually before this file is read) ─────
 # paru  ← bootstrapped manually in Stage 3
 
-# ── Shell Prompt ───────────────────────────────────
-zsh-theme-powerlevel10k-git
-
 # ── Theming ────────────────────────────────────────
 bibata-cursor-theme-bin
 kora-icon-theme
 flat-remix-gtk
 kvantum-theme-catppuccin-git
-otf-gamaliel
 ttf-meslo-nerd-font-powerlevel10k
 
 # ── App Launcher ───────────────────────────────────

@@ -152,32 +152,9 @@ for pkg in */; do
 done
 success "Dotfiles deployed. ~/.config entries are now symlinked into ~/.matrix/dotfiles/"
 
-# ── Stage 6: System configs ──────────────────────────────────────────────────
-step "Stage 6: Placing system configs (/etc)"
 
-SYSCFG="$MATRIX_DIR/dotfiles/matrix/.config/matrix/scripts/system-configs"
-
-place_config() {
-    local src="$1" dest="$2"
-    if [ -f "$src" ]; then
-        sudo cp "$src" "$dest"
-        success "Placed: $(basename "$src") → $dest"
-    else
-        warn "Missing: $src"
-    fi
-}
-
-sudo mkdir -p /etc/sysctl.d /etc/systemd/oomd.conf.d /etc/modprobe.d /etc/snapper/configs /etc/security /etc/voxtype
-
-place_config "$SYSCFG/99-matrix-sysctl.conf"             /etc/sysctl.d/99-matrix-sysctl.conf
-place_config "$SYSCFG/90-matrix-zram.conf"               /etc/systemd/zram-generator.conf
-place_config "$SYSCFG/10-matrix-oomd.conf"               /etc/systemd/oomd.conf.d/10-matrix-oomd.conf
-place_config "$SYSCFG/matrix-zswap.conf"                 /etc/modprobe.d/matrix-zswap.conf
-place_config "$SYSCFG/matrix-faillock.conf"              /etc/security/faillock.conf
-place_config "$SYSCFG/voxtype_config.toml"               /etc/voxtype/config.toml
-
-# ── Stage 7: Enable services ─────────────────────────────────────────────────
-step "Stage 7: Enabling systemd services"
+# ── Stage 6: Enable services ─────────────────────────────────────────────────
+step "Stage 6: Enabling systemd services"
 
 SERVICES=(NetworkManager bluetooth tuned)
 for svc in "${SERVICES[@]}"; do

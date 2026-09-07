@@ -6,7 +6,7 @@
 
 # Fail fast, fail loud
 set -Eeuo pipefail
-trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
 
 # Standard logging functions
 info()    { echo -e "\e[34m[*]\e[0m \$1"; }
@@ -60,7 +60,7 @@ sudo pacman -S --needed --noconfirm snapper snap-pac grub-btrfs inotify-tools >/
 if [[ ! -f /etc/snapper/configs/root ]]; then
     echo " -> Initializing snapper on the root filesystem..."
     sudo mkdir -p /etc/snapper/configs
-    sudo snapper --no-dbus -c root create-config / >/dev/null 2>&1 || sudo snapper -c root create-config / >/dev/null
+    sudo snapper --no-dbus -c root create-config / >/dev/null 2>&1 || sudo snapper -c root create-config / >/dev/null 2>&1 || true
 fi
 
 # 3. Apply the strict Matrix Snapper configuration template

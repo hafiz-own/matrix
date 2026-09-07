@@ -49,3 +49,6 @@ text/x-c++=org.gnome.TextEditor.desktop
 application/xml=org.gnome.TextEditor.desktop
 text/xml=org.gnome.TextEditor.desktop
 x-scheme-handler/antigravity=antigravity.desktop
+text/html=brave-browser.desktop
+x-scheme-handler/about=brave-browser.desktop
+x-scheme-handler/unknown=brave-browser.desktop

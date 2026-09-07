@@ -36,7 +36,7 @@ set -euo pipefail
 echo "Applying Partition-Based Hibernation (GRUB)..."
 
 # 1. Find the physical swap partition (ignoring zram)
-SWAP_DEV=$(swapon --show=NAME,TYPE --noheadings | grep "partition" | awk '{print $1}' || true)
+SWAP_DEV=$(swapon --show=NAME,TYPE --noheadings | grep "partition" | grep -v "zram" | awk '{print $1}' | head -n 1 || true)
 if [ -z "$SWAP_DEV" ]; then
     echo "Error: No physical swap partition found! Aborting hibernation setup."
     exit 1

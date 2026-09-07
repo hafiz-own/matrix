@@ -120,6 +120,14 @@ elif [[ $shell == "zsh" ]]; then
     # ZSH Custom directory
     ZSH_CUSTOM=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
 
+    # Installing zsh-completions
+    if [ ! -d "$ZSH_CUSTOM/plugins/zsh-completions" ]; then
+        info "Installing zsh-completions..."
+        git clone https://github.com/zsh-users/zsh-completions "$ZSH_CUSTOM/plugins/zsh-completions"
+    else
+        success "zsh-completions already installed"
+    fi
+
     # Installing zsh-autosuggestions
     if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
         info "Installing zsh-autosuggestions..."

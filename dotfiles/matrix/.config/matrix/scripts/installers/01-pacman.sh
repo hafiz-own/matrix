@@ -10,7 +10,7 @@
 
 # Fail fast, fail loud
 set -Eeuo pipefail
-trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
 
 # Standard logging functions
 info()    { echo -e "\e[34m[*]\e[0m \$1"; }
@@ -119,4 +119,4 @@ fi
 
 echo
 echo "Press [ENTER] to close."
-read
+read -r < /dev/tty || true

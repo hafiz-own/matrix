@@ -88,7 +88,7 @@ echo "Starting installation process..."
 echo ""
 
 # 3. Parse the selections and run the corresponding scripts
-while read -r line; do
+while read -u 3 -r line; do
     # Skip empty lines
     [ -z "$line" ] && continue
     
@@ -104,7 +104,7 @@ while read -r line; do
     else
         echo "Error: Script $filename not found!"
     fi
-done <<< "$SELECTED_MODULES"
+done 3<<< "$SELECTED_MODULES"
 
 echo ""
 echo "=============================================="

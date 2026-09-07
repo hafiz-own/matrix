@@ -26,8 +26,8 @@ alias hotspot='sudo ~/.config/matrix/scripts/matrix-hotspot'
 alias hotspot-proxy='sudo ~/.config/matrix/scripts/matrix-hotspot-proxy'
 alias use-gpu='~/.config/matrix/scripts/matrix-use-gpu'
 alias system-details='~/.config/matrix/scripts/matrix-system-details'
-alias fingerprint-matrix='~/.config/matrix/scripts/matrix-fingerprint'
-alias faceid='/home/own/.config/matrix/scripts/matrix-faceid'
+alias fingerprint='~/.config/matrix/scripts/matrix-fingerprint'
+alias faceid='~/.config/matrix/scripts/matrix-faceid'
 
 # File system
 if command -v eza &> /dev/null; then

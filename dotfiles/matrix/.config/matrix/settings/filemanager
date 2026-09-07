@@ -1,1 +1,2 @@
-yazi
+#!/bin/bash
+kitty -e yazi

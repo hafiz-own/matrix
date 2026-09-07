@@ -6,13 +6,13 @@
 
 # Fail fast, fail loud
 set -Eeuo pipefail
-trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
 
 # Standard logging functions
-info()    { echo -e "\e[34m[*]\e[0m \$1"; }
-warn()    { echo -e "\e[33m[!]\e[0m \$1"; }
-die()     { echo -e "\e[31m[✘]\e[0m \$1" >&2; exit 1; }
-success() { echo -e "\e[32m[✔]\e[0m \$1"; }
+info()    { echo -e "\e[34m[*]\e[0m $1"; }
+warn()    { echo -e "\e[33m[!]\e[0m $1"; }
+die()     { echo -e "\e[31m[✘]\e[0m $1" >&2; exit 1; }
+success() { echo -e "\e[32m[✔]\e[0m $1"; }
 
 # Help Menu
 show_help() {

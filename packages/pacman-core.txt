@@ -75,6 +75,7 @@ fastfetch
 inotify-tools
 pacman-contrib
 stow
+unzip
 
 # ── Media ──────────────────────────────────────────
 mpv

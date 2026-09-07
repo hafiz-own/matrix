@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# DESC: Face ID wrapper for facelock commands
+
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
+
+if ! command -v facelock &>/dev/null; then
+    echo -e "\e[31m[✘] 'facelock' is not installed. Run '09-faceid-setup.sh' first.\e[0m" >&2
+    exit 1
+fi
+
+show_help() {
+    echo "Usage: faceid [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  enroll   - Add a face model"
+    echo "  test     - Test recognition"
+    echo "  list     - List enrolled face models"
+    echo "  remove   - Remove a specific face model"
+    echo "  clear    - Remove all face models"
+    echo "  status   - Check system status"
+    echo "  preview  - Live camera preview with detection overlay"
+    echo ""
+}
+
+case "${1:-}" in
+    enroll)
+        echo "Launching face enrollment..."
+        sudo facelock enroll "${@:2}"
+        ;;
+    test)
+        echo "Testing face recognition..."
+        facelock test
+        ;;
+    list)
+        facelock list
+        ;;
+    remove)
+        if [ -z "${2:-}" ]; then
+            echo "Error: You must provide a model ID to remove. Run 'faceid list' to see your models." >&2
+            exit 1
+        fi
+        sudo facelock remove "$2"
+        ;;
+    clear)
+        sudo facelock clear
+        ;;
+    status)
+        facelock status
+        ;;
+    preview)
+        facelock preview
+        ;;
+    -h|--help|help|"")
+        show_help
+        ;;
+    *)
+        echo "Unknown command: '$1'"
+        show_help
+        exit 1
+        ;;
+esac

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Reminder
+Comment=Set a countdown timer
+Exec=/home/own/.config/matrix/scripts/matrix-reminder-ui.sh
+Icon=preferences-system-time
+Terminal=false
+Type=Application
+Categories=Utility;

@@ -1,0 +1,291 @@
+/* ============================================================
+ * spotlight-catppuccin — Premium Walker Theme (Mocha Pastel)
+ * macOS Spotlight style · Dark Glass · Smooth Interactions
+ * Built for perfect GTK4 dynamic collapse behavior.
+ * ============================================================ */
+
+/* ── 1. ERADICATE GTK BACKGROUNDS ─────────────── */
+window,
+window.background,
+window.csd,
+window.background.csd,
+.background,
+.csd {
+  background: transparent;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+
+scrolledwindow,
+viewport,
+gridview,
+listview,
+listbox,
+flowbox {
+  background: transparent;
+  background-color: transparent;
+}
+
+/* ── 2. GLOBAL TYPOGRAPHY ─────────────────────────────────── */
+* {
+  all: unset;
+  font-family: "SF Pro Display", "Inter", -apple-system, sans-serif;
+}
+
+/* ── 3. THE OUTER CARD (BoxWrapper) ──────────────────────── */
+.box-wrapper {
+  background-color: rgba(30, 30, 46, 0.85); /* macOS dark glass */
+  border-radius: 16px;
+  border: 1px solid #313244; /* Standard border, hardware accelerated */
+  padding: 6px;
+  box-shadow: none; /* Smaller, cheaper shadow */
+}
+
+#box {
+  background: transparent;
+}
+
+/* ── 4. SEARCH CONTAINER ─────────────────────────────────── */
+.search-container {
+  background: transparent;
+  padding: 2px;
+}
+
+/* ── 5. INPUT FIELD ──────────────────────────────────────── */
+#Input,
+entry.input,
+.input {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 6px 12px;
+  color: #cdd6f4;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  caret-color: #cdd6f4; /* Neutral white caret */
+  box-shadow: none;
+  outline: none;
+}
+
+entry.input text,
+#Input text {
+  color: #cdd6f4;
+}
+
+#Input placeholder,
+entry.input placeholder {
+  color: #bac2de;
+  font-weight: 300;
+}
+
+#Input:focus,
+entry.input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* Search icon */
+entry.input image,
+entry.input image.left,
+.input image,
+.input image.left {
+  -gtk-icon-size: 16px;
+  color: #bac2de;
+  margin-right: 10px;
+  margin-left: 4px;
+}
+
+/* ── 6. DIVIDER (between search bar and results) ─────────── */
+.content-container {
+  /* Removed border-top, padding-top, and margin-top so it collapses perfectly to 0px */
+  background: transparent;
+}
+
+/* ── 7. SCROLL + LIST ────────────────────────────────────── */
+.scroll {
+  background: transparent;
+  padding: 0;
+}
+
+scrollbar {
+  opacity: 0;
+  min-width: 0;
+}
+
+.list {
+  background: transparent;
+  color: #cdd6f4;
+}
+
+/* ── 8. LIST ITEMS ───────────────────────────────────────── */
+.item,
+.item-box {
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 1px 4px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+/* Hover state */
+.item:hover,
+.item-box:hover {
+  background: #45475a;
+}
+
+/* Selected item (Monochrome Frosted) */
+child:selected .item,
+row:selected .item,
+child:selected .item-box,
+row:selected .item-box,
+.item.selected,
+.item-box.selected {
+  background-color: #585b70;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.item-text,
+.preview-title,
+.preview-property-value,
+.keybind-label {
+  color: #cdd6f4;
+}
+
+.item-text {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.item-subtext,
+.preview-subtitle {
+  color: #bac2de;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Text colors when selected */
+child:selected .item-text,
+row:selected .item-text,
+.item.selected .item-text {
+  color: #cdd6f4;
+}
+
+child:selected .item-subtext,
+row:selected .item-subtext,
+.item.selected .item-subtext {
+  color: #cdd6f4;
+}
+
+.item-image {
+  -gtk-icon-size: 20px;
+  margin-right: 12px;
+}
+
+/* Quick Activation Badge */
+.item-quick-activation {
+  font-size: 10px;
+  font-weight: 600;
+  color: #1e1e2e;
+  background: #cba6f7;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-left: 10px;
+}
+
+child:selected .item-quick-activation,
+row:selected .item-quick-activation,
+.item.selected .item-quick-activation {
+  color: #fff;
+  background: #cba6f7;
+}
+
+
+
+/* ── 9. PLACEHOLDER HIDING ───────────────────────────────── */
+/* Hides the "No Results" text that appears initially or when a search fails */
+.placeholder,
+#Placeholder {
+  opacity: 0;
+  font-size: 0px;
+  line-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  min-height: 0px;
+  border: none;
+}
+
+/* ── 10. PREVIEW PANE ─────────────────────────────────────── */
+.preview {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  min-height: 0px;
+  min-width: 0px;
+}
+
+.preview-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid #313244;
+  padding: 16px;
+  margin-left: 12px;
+}
+
+.preview .large-icons,
+.preview-box .large-icons {
+  -gtk-icon-size: 48px;
+  margin-bottom: 12px;
+}
+
+.preview-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #cdd6f4;
+  margin-bottom: 4px;
+}
+
+.preview-subtitle {
+  font-size: 12px;
+  color: #bac2de;
+  margin-bottom: 12px;
+}
+
+.preview-property-label {
+  color: #bac2de;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 0;
+}
+
+.preview-property-value {
+  color: #cdd6f4;
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+/* ── 12. CATEGORY HEADERS ────────────────────────────────── */
+.category-header {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #bac2de;
+  padding: 8px 12px 2px 12px;
+  background: transparent;
+}
+
+/* ── 13. ERROR ───────────────────────────────────────────── */
+.error {
+  background: rgba(255, 69, 58, 0.15);
+  border: 1px solid rgba(255, 69, 58, 0.3);
+  color: #FF453A;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}

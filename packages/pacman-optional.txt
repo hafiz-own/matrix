@@ -1,0 +1,13 @@
+# ── Browsers ───────────────────────────────────────
+firefox
+
+# ── File Managers ──────────────────────────────────
+dolphin
+
+# ── Messaging ──────────────────────────────────────
+telegram-desktop
+
+# ── Productivity ───────────────────────────────────
+gnome-calculator
+gnome-text-editor
+vim

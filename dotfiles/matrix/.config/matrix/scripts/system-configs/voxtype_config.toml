@@ -1,0 +1,35 @@
+# Voxtype Configuration for Matrix Ecosystem
+# Location: ~/.config/voxtype/config.toml
+
+# State file for Waybar integrations
+state_file = "auto"
+
+[hotkey]
+# Hotkey is configured directly in Hyprland
+enabled = false
+
+[audio]
+device = "default"
+sample_rate = 16000
+max_duration_secs = 60
+
+# Pause Spotify/Browsers during recording
+pause_media = true
+
+[whisper]
+# Model to use for transcription
+# large-v3-turbo is recommended if you have 2GB VRAM, otherwise base.en
+model = "base.en"
+language = "en"
+translate = false
+
+[output]
+# Simulates keyboard input at cursor position (via wtype)
+mode = "type"
+fallback_to_clipboard = true
+type_delay_ms = 1
+
+[output.notification]
+on_recording_start = false
+on_recording_stop = false
+on_transcription = false

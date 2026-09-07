@@ -1,0 +1,11 @@
+# ── Browsers ───────────────────────────────────────
+brave-bin
+
+# ── Dev Tools ──────────────────────────────────────
+visual-studio-code-bin
+
+# ── Remote Access ──────────────────────────────────
+rustdesk-bin
+
+# ── Communication ──────────────────────────────────
+wacli-bin

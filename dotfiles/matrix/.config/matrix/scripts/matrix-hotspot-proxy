@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+# DESC: Transparent Proxy over Wi-Fi Hotspot
+
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
+
+# Configuration
+DEFAULT_PROXY_IP="172.16.0.6"
+DEFAULT_PROXY_PORT="80"
+REDSOCKS_PORT="12345"
+STATE_FILE="/tmp/matrix-hotspot-proxy.state"
+REDSOCKS_CONF="/tmp/redsocks-hotspot.conf"
+REDSOCKS_PID_FILE="/tmp/redsocks-hotspot.pid"
+
+show_help() {
+    echo "Usage: hotspot-proxy [COMMAND] [PROXY_IP:PORT]"
+    echo "Examples:"
+    echo "  hotspot-proxy on                  # Uses default 172.16.0.6:80"
+    echo "  hotspot-proxy on 10.0.0.1:3128    # Uses custom proxy"
+    echo "  hotspot-proxy off                 # Disables transparent routing"
+    echo "  hotspot-proxy status              # Shows current state"
+}
+
+check_preconditions() {
+    # 1. Check create_ap exists
+    if ! command -v create_ap &>/dev/null; then
+        echo "[!] 'create_ap' is not installed."
+        echo "    Please run: paru -S linux-wifi-hotspot (or create_ap)"
+        exit 1
+    fi
+
+    # 2. Check if a hotspot is currently running
+    if [ -z "$(create_ap --list-running 2>/dev/null)" ]; then
+        echo "[!] No hotspot is currently running."
+        echo "    Start one first using linux-wifi-hotspot (wihotspot) or create_ap."
+        exit 1
+    fi
+
+    # 3. Check if redsocks is installed
+    if ! command -v redsocks &>/dev/null; then
+        echo "[!] redsocks is not installed. Please run: paru -S redsocks"
+        exit 1
+    fi
+
+    # 4. Check sudo access (needed for iptables)
+    if [ "$EUID" -ne 0 ]; then
+        echo "[!] This action requires root privileges for iptables."
+        echo "    Please run with sudo: sudo $0 $1"
+        exit 1
+    fi
+}
+
+get_active_hotspot_interface() {
+    local gateway_ip="192.168.12.1"
+    if [ -f "/etc/create_ap.conf" ]; then
+        gateway_ip=$(grep "^GATEWAY=" /etc/create_ap.conf | cut -d= -f2 || echo "192.168.12.1")
+    fi
+
+    local ap_iface
+    ap_iface=$(ip -o -f inet addr show | grep "$gateway_ip" | awk '{print $2}' | head -1)
+    
+    if [ -z "$ap_iface" ]; then
+        echo "[!] Hotspot is running, but couldn't find the interface using gateway $gateway_ip." >&2
+        return 1
+    fi
+    echo "$ap_iface"
+}
+
+get_active_hotspot_subnet() {
+    local iface="$1"
+    local subnet
+    # 6. Dynamically extract the exact subnet assigned to the interface
+    subnet=$(ip -o -f inet addr show "$iface" | awk '{print $4}')
+    
+    if [ -z "$subnet" ]; then
+        echo "[!] Could not determine subnet for $iface."
+        exit 1
+    fi
+    echo "$subnet"
+}
+
+enable_proxy() {
+    check_preconditions "on"
+    
+    local proxy_ip=$1
+    local proxy_port=$2
+    
+    if [ -f "$STATE_FILE" ]; then
+        echo "[!] Hotspot proxy state file already exists. Run '$0 off' first."
+        exit 1
+    fi
+
+    if pgrep -x redsocks &>/dev/null; then
+        echo "[!] redsocks is already running (possibly from another process)."
+        echo "    Check with: pgrep -a redsocks"
+        exit 1
+    fi
+
+    local ap_iface
+    ap_iface=$(get_active_hotspot_interface)
+    
+    local hotspot_subnet
+    hotspot_subnet=$(get_active_hotspot_subnet "$ap_iface")
+
+    echo "[*] Activating Transparent Hotspot Proxy on $ap_iface ($hotspot_subnet)"
+    echo " -> Upstream proxy: $proxy_ip:$proxy_port"
+
+    # 1. Generate Redsocks Config
+    echo " -> Generating temporary redsocks config..."
+    cat > "$REDSOCKS_CONF" <<EOF
+base {
+    log_debug = off;
+    log_info  = off;
+    log       = "syslog:daemon";
+    daemon    = off;
+    redirector = iptables;
+}
+redsocks {
+    local_ip   = 0.0.0.0;
+    local_port = ${REDSOCKS_PORT};
+    ip         = ${proxy_ip};
+    port       = ${proxy_port};
+    type       = http-connect;
+}
+EOF
+
+    # 2. Start Redsocks
+    echo " -> Starting redsocks daemon..."
+    redsocks -c "$REDSOCKS_CONF" &
+    local redsocks_pid=$!
+    echo $redsocks_pid > "$REDSOCKS_PID_FILE"
+    
+    sleep 0.5 # Give it a moment to bind
+
+    if ! kill -0 "$redsocks_pid" 2>/dev/null; then
+        echo "[!] redsocks failed to start. Check: journalctl -t redsocks"
+        rm -f "$REDSOCKS_CONF" "$REDSOCKS_PID_FILE"
+        exit 1
+    fi
+
+    # 3. Inject Iptables Rules
+    echo " -> Injecting transparent routing iptables rules..."
+    iptables -t nat -A PREROUTING -s "$hotspot_subnet" -p tcp -m tcp --dport 80 -j REDIRECT --to-ports "$REDSOCKS_PORT"
+    iptables -t nat -A PREROUTING -s "$hotspot_subnet" -p tcp -m tcp --dport 443 -j REDIRECT --to-ports "$REDSOCKS_PORT"
+    iptables -t mangle -A POSTROUTING -p tcp -j CHECKSUM --checksum-fill 2>/dev/null || true
+
+    # 4. Save State
+    echo " -> Writing state file..."
+    cat > "$STATE_FILE" <<EOF
+REDSOCKS_PID=$redsocks_pid
+REDSOCKS_CONF=$REDSOCKS_CONF
+REDSOCKS_PID_FILE=$REDSOCKS_PID_FILE
+HOTSPOT_SUBNET=$hotspot_subnet
+REDSOCKS_PORT=$REDSOCKS_PORT
+AP_IFACE=$ap_iface
+EOF
+
+    echo ""
+    echo "[✔] Hotspot Proxy is ACTIVE!"
+    echo "    All HTTP/HTTPS traffic from connected devices is now tunneled."
+}
+
+disable_proxy() {
+    if [ "$EUID" -ne 0 ]; then
+        echo "[!] This action requires root privileges for iptables."
+        echo "    Please run with sudo: sudo $0 off"
+        exit 1
+    fi
+
+    if [ ! -f "$STATE_FILE" ]; then
+        echo "[!] Proxy doesn't appear to be active (no state file found)."
+        # Do a fallback cleanup just in case
+        pkill -x redsocks 2>/dev/null || true
+        rm -f "$REDSOCKS_CONF" "$REDSOCKS_PID_FILE"
+        exit 0
+    fi
+
+    echo "[*] Disabling Transparent Hotspot Proxy..."
+    
+    # Load state variables
+    source "$STATE_FILE"
+
+    # Remove routing rules
+    echo " -> Removing routing rules for $HOTSPOT_SUBNET..."
+    iptables -t nat -D PREROUTING -s "$HOTSPOT_SUBNET" -p tcp -m tcp --dport 80 -j REDIRECT --to-ports "$REDSOCKS_PORT" 2>/dev/null || true
+    iptables -t nat -D PREROUTING -s "$HOTSPOT_SUBNET" -p tcp -m tcp --dport 443 -j REDIRECT --to-ports "$REDSOCKS_PORT" 2>/dev/null || true
+    iptables -t mangle -D POSTROUTING -p tcp -j CHECKSUM --checksum-fill 2>/dev/null || true
+
+    # 2. Kill Redsocks
+    echo " -> Stopping redsocks daemon..."
+    if kill -0 "$REDSOCKS_PID" 2>/dev/null; then
+        kill "$REDSOCKS_PID"
+        wait "$REDSOCKS_PID" 2>/dev/null || true
+    fi
+    pkill -x redsocks 2>/dev/null || true # Fallback hammer
+
+    # 3. Clean up
+    echo " -> Cleaning up temp files..."
+    rm -f "$STATE_FILE" "$REDSOCKS_CONF" "$REDSOCKS_PID_FILE"
+
+    echo ""
+    echo "[✔] Hotspot Proxy is DISABLED!"
+    echo "    Hotspot continues to operate in plain NAT mode."
+}
+
+show_status() {
+    echo "=== Hotspot Proxy Status ==="
+    
+    if [ -f "$STATE_FILE" ]; then
+        source "$STATE_FILE"
+        echo "State:       ACTIVE"
+        echo "Interface:   $AP_IFACE"
+        echo "Subnet:      $HOTSPOT_SUBNET"
+        
+        if kill -0 "$REDSOCKS_PID" 2>/dev/null; then
+            echo "Daemon:      Running (PID $REDSOCKS_PID)"
+        else
+            echo "Daemon:      DEAD (PID $REDSOCKS_PID) - This is an error state!"
+        fi
+        
+        echo ""
+        echo "--- Active iptables routing rules ---"
+        iptables -t nat -S PREROUTING | grep "REDIRECT --to-ports $REDSOCKS_PORT" || echo "None found!"
+    else
+        echo "State:       INACTIVE"
+    fi
+
+    echo ""
+    echo "--- Connected Clients ---"
+    if command -v create_ap &>/dev/null && create_ap --list-running &>/dev/null; then
+        # Need sudo to list clients if create_ap is run as root
+        if [ "$EUID" -eq 0 ]; then
+             create_ap --list-clients "$(ip link show | awk '/^[0-9]+: ap[0-9]+:/ {sub(/:$/,"",$2); print $2}' | head -1)" 2>/dev/null || echo "None or no hotspot running."
+        else
+             echo "(Run status with sudo to see connected clients)"
+        fi
+    else
+        echo "No hotspot running."
+    fi
+    echo "============================"
+}
+
+case "${1:-}" in
+    on)
+        if [ -n "${2:-}" ]; then
+            IFS=':' read -r IP PORT <<< "$2"
+        else
+            IP="$DEFAULT_PROXY_IP"
+            PORT="$DEFAULT_PROXY_PORT"
+        fi
+        enable_proxy "$IP" "$PORT"
+        ;;
+    off)
+        disable_proxy
+        ;;
+    status)
+        show_status
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac

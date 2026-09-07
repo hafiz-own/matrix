@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# DESC: Run applications using the NVIDIA dedicated GPU
+
+# DESC: Forces the application to execute on the dedicated GPU.
+
+# Fail fast, fail loud
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+
+# Standard logging functions
+info()    { echo -e "\e[34m[*]\e[0m \$1"; }
+warn()    { echo -e "\e[33m[!]\e[0m \$1"; }
+die()     { echo -e "\e[31m[✘]\e[0m \$1" >&2; exit 1; }
+success() { echo -e "\e[32m[✔]\e[0m \$1"; }
+
+# Help Menu
+show_help() {
+    cat << EOF
+Usage: \$(basename "\$0") [OPTIONS]
+
+Forces the application to execute on the dedicated GPU.
+
+Options:
+  -h, --help    Show this help message and exit
+EOF
+}
+
+if [[ "\${1:-}" == "-h" || "\${1:-}" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+
+set -euo pipefail
+
+# Determine alias name for help display
+ALIAS_NAME="use-gpu"
+
+show_help() {
+    echo -e "Usage: \033[1;36m${ALIAS_NAME}\033[0m <command> [arguments...]\n"
+    echo "Runs the specified application using the NVIDIA dedicated GPU (PRIME Offload)."
+    echo ""
+    echo -e "\033[1;33mExample:\033[0m"
+    echo "  ${ALIAS_NAME} glxinfo"
+    echo "  ${ALIAS_NAME} blender"
+}
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+fi
+
+# Check if the nvidia module is loaded
+if ! lsmod | grep "^nvidia " >/dev/null; then
+    echo -e "\033[1;31m[ERROR]\033[0m NVIDIA drivers do not appear to be loaded."
+    exit 1
+fi
+
+# We use the built-in prime-run if available, otherwise manually export vars
+if command -v prime-run >/dev/null 2>&1; then
+    exec prime-run "$@"
+else
+    export __NV_PRIME_RENDER_OFFLOAD=1
+    export __VK_LAYER_NV_optimus=NVIDIA_only
+    export __GLX_VENDOR_LIBRARY_NAME=nvidia
+    exec "$@"
+fi

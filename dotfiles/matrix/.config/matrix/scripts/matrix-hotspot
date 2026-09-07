@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# DESC: Matrix Smart Hotspot (Auto-Channel)
+
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line $LINENO\e[0m" >&2' ERR
+
+if [ "$EUID" -ne 0 ]; then
+    echo "[!] This script must be run as root."
+    echo "    Try: sudo $0"
+    exit 1
+fi
+
+# 0. Pre-flight checks
+if ! command -v create_ap &>/dev/null; then
+    echo "[!] 'create_ap' is not installed."
+    echo "    Please run: paru -S linux-wifi-hotspot (or create_ap)"
+    exit 1
+fi
+
+if ! command -v iw &>/dev/null; then
+    echo "[!] 'iw' is not installed."
+    echo "    Please run: sudo pacman -S iw"
+    exit 1
+fi
+
+WIFI_IFACE=$(ip -o -4 route show to default | awk '{print $5}' | head -n1 || true)
+if [ -z "$WIFI_IFACE" ]; then
+    echo "[!] Could not detect an active internet interface. Aborting."
+    exit 1
+fi
+
+show_help() {
+    echo "Usage: hotspot [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  on       Start the hotspot dynamically in the background"
+    echo "  off      Stop the background hotspot"
+    echo "  status   Check if the hotspot is running"
+    echo ""
+    echo "Automatically detects your current Wi-Fi channel to prevent crashes,"
+    echo "and launches a safe, crash-proof hotspot using create_ap."
+}
+
+start_hotspot() {
+    # Check if already running
+    if create_ap --list-running | grep -q "$WIFI_IFACE"; then
+        echo "[!] Hotspot is already running."
+        echo "    Use 'sudo matrix-hotspot off' to stop it first."
+        exit 0
+    fi
+
+    echo "========================================="
+    echo "        Matrix Smart Wi-Fi Hotspot       "
+    echo "========================================="
+    echo ""
+
+    # 1. Extract exactly what channel the Wi-Fi card is currently using
+    CHANNEL=$(iw dev "$WIFI_IFACE" info 2>/dev/null | grep -i channel | awk '{print $2}' || true)
+
+    if [ -z "$CHANNEL" ]; then
+        echo "[*] Not currently connected to a Wi-Fi network."
+        echo "[*] Defaulting to Channel 1."
+        CHANNEL=1
+    else
+        echo "[*] Connected to Wi-Fi on $WIFI_IFACE (Channel $CHANNEL)"
+    fi
+
+    echo ""
+    # 2. Prompt for credentials
+    if command -v gum &>/dev/null; then
+        SSID=$(gum input --placeholder "Hotspot Name (SSID)" --value "MatrixHotspot" --header "Enter Hotspot Name:")
+        PASSWORD=$(gum input --placeholder "Password (min 8 chars)" --value "12345678" --header "Enter Password:")
+    else
+        read -p "Enter Hotspot Name [MatrixHotspot]: " INPUT_SSID
+        SSID=${INPUT_SSID:-MatrixHotspot}
+        read -p "Enter Password [12345678]: " INPUT_PASSWORD
+        PASSWORD=${INPUT_PASSWORD:-12345678}
+    fi
+
+    if [ ${#PASSWORD} -lt 8 ]; then
+        echo "[!] Password must be at least 8 characters long."
+        exit 1
+    fi
+
+    echo ""
+    echo "[*] Starting Smart Hotspot on channel $CHANNEL in the background..."
+    echo "    SSID: $SSID"
+    echo "    Pass: $PASSWORD"
+    echo "========================================="
+
+    # 3. Launch create_ap safely as a daemon
+    create_ap --daemon -c "$CHANNEL" "$WIFI_IFACE" "$WIFI_IFACE" "$SSID" "$PASSWORD"
+    
+    echo ""
+    echo "[✔] Hotspot is now running in the background!"
+    echo "    (To turn it off, run: sudo matrix-hotspot off)"
+}
+
+stop_hotspot() {
+    echo "[*] Stopping Matrix Hotspot..."
+    
+    # create_ap --list-running returns lines like "12345 wlp0s20f3 (ap0)"
+    if create_ap --list-running | grep -q "$WIFI_IFACE"; then
+        create_ap --stop "$WIFI_IFACE"
+        echo "[✔] Hotspot stopped successfully."
+    else
+        echo "[!] No hotspot is currently running."
+        # Fallback hammer just in case
+        pkill -f create_ap 2>/dev/null || true
+    fi
+}
+
+status_hotspot() {
+    echo "=== Matrix Hotspot Status ==="
+    
+    local RUNNING_INFO=$(create_ap --list-running | grep "$WIFI_IFACE" || true)
+    
+    if [ -n "$RUNNING_INFO" ]; then
+        echo "State:      RUNNING"
+        echo "Process:    $RUNNING_INFO"
+        echo ""
+        echo "To stop it, run: sudo matrix-hotspot off"
+    else
+        echo "State:      STOPPED"
+        echo ""
+        echo "To start it, run: sudo matrix-hotspot on"
+    fi
+    echo "============================="
+}
+
+case "${1:-}" in
+    on)
+        start_hotspot
+        ;;
+    off)
+        stop_hotspot
+        ;;
+    status)
+        status_hotspot
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac

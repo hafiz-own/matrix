@@ -1,0 +1,165 @@
+#!/bin/bash
+# matrix-proxy.sh - A script to safely toggle system-wide proxy settings
+
+# DESC: Manages system-wide HTTP/HTTPS proxy settings.
+
+# Fail fast, fail loud
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+
+# Standard logging functions
+info()    { echo -e "\e[34m[*]\e[0m \$1"; }
+warn()    { echo -e "\e[33m[!]\e[0m \$1"; }
+die()     { echo -e "\e[31m[✘]\e[0m \$1" >&2; exit 1; }
+success() { echo -e "\e[32m[✔]\e[0m \$1"; }
+
+# Help Menu
+show_help() {
+    cat << EOF
+Usage: \$(basename "\$0") [OPTIONS]
+
+Manages system-wide HTTP/HTTPS proxy settings.
+
+Options:
+  -h, --help    Show this help message and exit
+EOF
+}
+
+if [[ "\${1:-}" == "-h" || "\${1:-}" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+
+set -euo pipefail
+trap 'echo "[!] Error: Script failed on line $LINENO" >&2' ERR
+
+DEFAULT_PROXY_IP="172.16.0.6"
+DEFAULT_PROXY_PORT="80"
+
+show_help() {
+    echo "Usage: proxy [COMMAND] [PROXY_IP:PORT]"
+    echo "Examples:"
+    echo "  proxy on                  # Uses default 172.16.0.6:80"
+    echo "  proxy on 10.0.0.1:3128    # Uses custom proxy"
+    echo "  proxy off                 # Disables all proxy settings"
+}
+
+enable_proxy() {
+    local proxy_ip=$1
+    local proxy_port=$2
+    local proxy_url="http://${proxy_ip}:${proxy_port}"
+    
+    echo "[*] Enabling system-wide proxy: $proxy_url"
+    
+    # 1. GSettings (XDG Desktop Portal, GNOME, Electron, Firefox)
+    echo " -> Setting GSettings..."
+    gsettings set org.gnome.system.proxy mode 'manual'
+    gsettings set org.gnome.system.proxy.http host "$proxy_ip"
+    gsettings set org.gnome.system.proxy.http port "$proxy_port"
+    gsettings set org.gnome.system.proxy.https host "$proxy_ip"
+    gsettings set org.gnome.system.proxy.https port "$proxy_port"
+    gsettings set org.gnome.system.proxy ignore-hosts "['localhost', '127.0.0.0/8', '::1']"
+    
+    # 2. Git
+    echo " -> Setting Git global config..."
+    git config --global http.proxy "$proxy_url"
+    git config --global https.proxy "$proxy_url"
+    
+    # 3. NPM (if installed)
+    if command -v npm &> /dev/null; then
+        echo " -> Setting NPM proxy..."
+        npm config set proxy "$proxy_url"
+        npm config set https-proxy "$proxy_url"
+    fi
+    
+    # 4. User Environment Variables
+    echo " -> Creating ~/.config/zshrc/90-proxy..."
+    cat <<EOF > ~/.config/zshrc/90-proxy
+export http_proxy="$proxy_url"
+export https_proxy="$proxy_url"
+export ftp_proxy="$proxy_url"
+export HTTP_PROXY="$proxy_url"
+export HTTPS_PROXY="$proxy_url"
+export FTP_PROXY="$proxy_url"
+export no_proxy="localhost,127.0.0.1,::1"
+export NO_PROXY="localhost,127.0.0.1,::1"
+EOF
+    
+    # 5. System Environment & Profile (/etc/environment and /etc/profile.d/)
+    # Requires sudo. We use sed to safely remove old lines without destroying the file.
+    echo " -> Updating /etc/environment and /etc/profile.d/proxy.sh (Requires sudo)..."
+    
+    sudo sed -i '/^http_proxy=/Id' /etc/environment
+    sudo sed -i '/^https_proxy=/Id' /etc/environment
+    sudo sed -i '/^ftp_proxy=/Id' /etc/environment
+    sudo sed -i '/^all_proxy=/Id' /etc/environment
+    sudo sed -i '/^no_proxy=/Id' /etc/environment
+    
+    echo -e "http_proxy=\"$proxy_url\"\nhttps_proxy=\"$proxy_url\"\nftp_proxy=\"$proxy_url\"\nno_proxy=\"localhost,127.0.0.1,::1\"" | sudo tee -a /etc/environment >/dev/null
+    
+    echo -e "export http_proxy=\"$proxy_url\"\nexport https_proxy=\"$proxy_url\"\nexport ftp_proxy=\"$proxy_url\"\nexport no_proxy=\"localhost,127.0.0.1,::1\"" | sudo tee /etc/profile.d/proxy.sh >/dev/null
+    
+    echo ""
+    echo "[✔] Proxy ENABLED."
+    echo "A proxy configuration file has been written to ~/.config/zshrc/90-proxy."
+    echo "Any newly opened terminal will automatically apply these settings!"
+}
+
+disable_proxy() {
+    echo "[*] Disabling system-wide proxy..."
+    
+    # 1. GSettings
+    echo " -> Resetting GSettings..."
+    gsettings set org.gnome.system.proxy mode 'none'
+    
+    # 2. Git
+    echo " -> Resetting Git..."
+    git config --global --unset http.proxy || true
+    git config --global --unset https.proxy || true
+    
+    # 3. NPM
+    if command -v npm &> /dev/null; then
+        echo " -> Resetting NPM..."
+        npm config delete proxy || true
+        npm config delete https-proxy || true
+    fi
+    
+    # 4. User Environment Variables
+    echo " -> Removing ~/.config/zshrc/90-proxy..."
+    rm -f ~/.config/zshrc/90-proxy
+    
+    # 5. System Environment
+    echo " -> Cleaning /etc/environment and /etc/profile.d/proxy.sh (Requires sudo)..."
+    sudo sed -i '/^http_proxy=/Id' /etc/environment
+    sudo sed -i '/^https_proxy=/Id' /etc/environment
+    sudo sed -i '/^ftp_proxy=/Id' /etc/environment
+    sudo sed -i '/^all_proxy=/Id' /etc/environment
+    sudo sed -i '/^no_proxy=/Id' /etc/environment
+    
+    sudo rm -f /etc/profile.d/proxy.sh
+    
+    echo ""
+    echo "[✔] Proxy DISABLED."
+    echo "Please restart your terminal or run the following to clear your current session:"
+    echo "unset http_proxy https_proxy ftp_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY all_proxy ALL_PROXY"
+}
+
+case "${1:-}" in
+    on)
+        if [ -n "${2:-}" ]; then
+            IFS=':' read -r IP PORT <<< "$2"
+        else
+            IP="$DEFAULT_PROXY_IP"
+            PORT="$DEFAULT_PROXY_PORT"
+        fi
+        enable_proxy "$IP" "$PORT"
+        ;;
+    off)
+        disable_proxy
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac

@@ -1,0 +1,137 @@
+# ── Hyprland WM Stack ──────────────────────────────
+hyprland
+uwsm
+xdg-desktop-portal-hyprland
+xdg-utils
+hyprlock
+hypridle
+hyprpaper
+hyprsunset
+hyprpicker
+hyprshutdown
+qt5-wayland
+qt6-wayland
+
+# ── Audio ──────────────────────────────────────────
+pipewire
+pipewire-alsa
+pipewire-pulse
+pipewire-jack
+wireplumber
+libpulse
+gst-plugin-pipewire
+pavucontrol
+
+# ── Networking ─────────────────────────────────────
+networkmanager
+network-manager-applet
+wpa_supplicant
+dnsmasq
+
+# ── Bluetooth ──────────────────────────────────────
+bluez
+bluez-utils
+blueman
+
+# ── Notifications ──────────────────────────────────
+swaync
+
+# ── Clipboard ──────────────────────────────────────
+wl-clipboard
+cliphist
+
+# ── Screenshot ─────────────────────────────────────
+grim
+slurp
+swappy
+
+# ── Theming ────────────────────────────────────────
+kvantum
+nwg-look
+qt6ct
+polkit-gnome
+polkit-kde-agent
+
+# ── Fonts ──────────────────────────────────────────
+ttf-jetbrains-mono-nerd
+noto-fonts
+noto-fonts-emoji
+otf-font-awesome
+
+# ── Terminal ───────────────────────────────────────
+kitty
+
+# ── Shell & CLI Tools ──────────────────────────────
+zsh
+gum
+figlet
+jq
+bat
+fzf
+eza
+zoxide
+fastfetch
+inotify-tools
+pacman-contrib
+stow
+
+# ── Media ──────────────────────────────────────────
+mpv
+mpd
+mpc
+ncmpcpp
+loupe
+gpu-screen-recorder
+yt-dlp
+
+# ── File Viewers ───────────────────────────────────
+evince
+
+# ── Dev / Build ────────────────────────────────────
+git
+neovim
+lazygit
+nodejs
+npm
+python-pynvim
+fd
+ripgrep
+
+# ── System Tools ───────────────────────────────────
+brightnessctl
+nvtop
+xorg-xhost
+
+# ── Performance & Power ────────────────────────────
+tuned
+tuned-ppd
+
+# ── GPU / Display (Intel iGPU baseline) ────────────
+vulkan-intel
+intel-media-driver
+libva-intel-driver
+# NVIDIA: run extras/16-nvidia-setup.sh
+
+# ── Wayland Misc ───────────────────────────────────
+wtype
+
+# ── Network Tools ──────────────────────────────────
+nmap
+sdcv
+
+# ── OCR ────────────────────────────────────────────
+tesseract
+tesseract-data-eng
+tesseract-data-urd
+
+# ── Apps ───────────────────────────────────────────
+libreoffice-fresh
+flatpak
+cmatrix
+
+# ── Base (for AUR building) ────────────────────────
+base-devel
+sudo
+wget
+curl
+man-db

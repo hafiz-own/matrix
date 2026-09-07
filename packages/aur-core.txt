@@ -1,0 +1,39 @@
+# ── AUR Helper (installed manually before this file is read) ─────
+# paru  ← bootstrapped manually in Stage 3
+
+# ── Shell Prompt ───────────────────────────────────
+zsh-theme-powerlevel10k-git
+
+# ── Theming ────────────────────────────────────────
+bibata-cursor-theme-bin
+kora-icon-theme
+flat-remix-gtk
+kvantum-theme-catppuccin-git
+otf-gamaliel
+ttf-meslo-nerd-font-powerlevel10k
+
+# ── App Launcher ───────────────────────────────────
+walker
+elephant
+elephant-bluetooth
+elephant-calc
+elephant-clipboard
+elephant-desktopapplications
+elephant-menus
+elephant-providerlist
+elephant-symbols
+elephant-todo
+elephant-websearch
+
+# ── Status Bar ─────────────────────────────────────
+waybar-git
+
+# ── Apps ───────────────────────────────────────────
+localsend-bin
+
+# ── Input / OCR ────────────────────────────────────
+tensaku-bin
+
+# ── Network ────────────────────────────────────────
+linux-wifi-hotspot
+redsocks

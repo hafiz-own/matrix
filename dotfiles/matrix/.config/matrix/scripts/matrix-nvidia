@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# DESC: Detects and configures optimal NVIDIA driver settings.
+
+# Fail fast, fail loud
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error: Script failed on line \$LINENO\e[0m" >&2' ERR
+
+# Standard logging functions
+info()    { echo -e "\e[34m[*]\e[0m \$1"; }
+warn()    { echo -e "\e[33m[!]\e[0m \$1"; }
+die()     { echo -e "\e[31m[✘]\e[0m \$1" >&2; exit 1; }
+success() { echo -e "\e[32m[✔]\e[0m \$1"; }
+
+# Help Menu
+show_help() {
+    cat << EOF
+Usage: \$(basename "\$0") [OPTIONS]
+
+Detects and configures optimal NVIDIA driver settings.
+
+Options:
+  -h, --help    Show this help message and exit
+EOF
+}
+
+if [[ "\${1:-}" == "-h" || "\${1:-}" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+
+info() { echo -e "${BLUE}[BOOTSTRAP]${NC} $1"; }
+success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
+# --- 2. OS DETECTION (By Package Manager) ---
+
+if command -v pacman &> /dev/null; then
+    DISTRO="Arch Linux"
+    INSTALL_CMD="sudo pacman -S --noconfirm nvidia-open-dkms nvidia-utils nvidia-settings egl-wayland lib32-nvidia-utils"
+    CHECK_PKG_CMD="pacman -Qi sddm"
+elif command -v dnf &> /dev/null; then
+    DISTRO="Fedora"
+    echo "ERROR: $DISTRO is currently not supported. Please install NVIDIA manually."
+    exit 1
+    # INSTALL_CMD="sudo dnf install -y sddm qt6-qtsvg qt6-qtvirtualkeyboard qt6-qtmultimedia"
+    # CHECK_PKG_CMD="rpm -q sddm"
+elif command -v zypper &> /dev/null; then
+    DISTRO="openSUSE Tumbleweed"
+    echo "ERROR: $DISTRO is currently not supported. Please install NVIDIA manually."
+    exit 1
+    # INSTALL_CMD="sudo zypper install -y sddm-qt6 libQt6Svg6 qt6-virtualkeyboard qt6-virtualkeyboard-imports qt6-multimedia qt6-multimedia-imports"
+    # CHECK_PKG_CMD="rpm -q sddm"
+else
+    echo "ERROR: Unsupported package manager"
+    exit 1
+fi
+
+echo
+warn "The script will install the NVIDIA graphics drivers on your system."
+if gum confirm "Do you want to proceed?"; then
+    bash -c "$INSTALL_CMD"
+    echo 'source = ~/.config/hypr/conf/environments/nvidia.conf' > $HOME/.config/hypr/conf/environment.conf
+    success "Done!"
+fi

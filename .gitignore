@@ -1,0 +1,19 @@
+# MPD runtime state (not config)
+dotfiles/mpd/.config/mpd/database
+dotfiles/mpd/.config/mpd/mpd.log
+dotfiles/mpd/.config/mpd/state
+dotfiles/mpd/.config/mpd/sticker.sql
+dotfiles/mpd/.config/mpd/playlists/*.m3u
+
+# ncmpcpp error log
+dotfiles/ncmpcpp/.config/ncmpcpp/error.log
+
+# Neovim lazy lock (pinned — keep) — remove this line if you want to track it
+# dotfiles/nvim/.config/nvim/lazy-lock.json
+
+# nwg-displays runtime profiles
+dotfiles/nwg-displays/.config/nwg-displays/profiles
+
+# Sensitive / machine-specific
+.env
+*.secret

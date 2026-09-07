@@ -1,0 +1,29 @@
+/* Import the default system styles first */
+@import url("/etc/xdg/swaync/style.css");
+
+/* 1. Add padding around the main notification text so it isn't flush with the edge */
+.notification-row .notification-background .notification .notification-default-action {
+  padding: 15px 15px 10px 15px;
+}
+
+/* 2. Push the close button ('x') slightly inwards so it doesn't hug the top-right corner */
+.notification-row .notification-background .close-button {
+  margin: 10px;
+}
+
+/* 3. Add padding and margin to action buttons (like "abc") so the text has breathing room */
+.notification-row .notification-background .notification .notification-action {
+  padding: 8px 16px;
+  margin: 5px;
+}
+
+
+/* 4. Make the notification completely transparent with no background */
+.notification-row .notification-background,
+.notification-row .notification-background {
+  background: transparent;
+  box-shadow: none; /* Remove shadow to ensure total transparency */
+  border: none;     /* Remove any borders */
+}
+
+

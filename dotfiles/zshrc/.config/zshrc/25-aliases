@@ -1,0 +1,52 @@
+# -----------------------------------------------------
+# ALIASES
+# -----------------------------------------------------
+
+# -----------------------------------------------------
+# General
+# -----------------------------------------------------
+alias ..='cd ..'
+alias c='clear'
+alias nf='fastfetch'
+alias pf='fastfetch'
+alias ff='fastfetch'
+alias v='$EDITOR'
+alias vim='$EDITOR'
+alias clock='tty-clock'
+
+
+# -----------------------------------------------------
+# Scripts
+# -----------------------------------------------------
+alias ascii='~/.config/matrix/scripts/figlet-text-copy'
+alias coffee='~/.config/matrix/scripts/caffeine.sh'
+alias matrix-install='/home/own/.config/matrix/scripts/install-matrix.sh'
+alias proxy='~/.config/matrix/scripts/matrix-proxy'
+alias hotspot='sudo ~/.config/matrix/scripts/matrix-hotspot'
+alias hotspot-proxy='sudo ~/.config/matrix/scripts/matrix-hotspot-proxy'
+alias use-gpu='~/.config/matrix/scripts/matrix-use-gpu'
+alias system-details='~/.config/matrix/scripts/matrix-system-details'
+alias fingerprint-matrix='~/.config/matrix/scripts/matrix-fingerprint'
+alias faceid='/home/own/.config/matrix/scripts/matrix-faceid'
+
+# File system
+if command -v eza &> /dev/null; then
+  alias ls='eza -lh --group-directories-first --icons=auto'
+  alias lsa='ls -a'
+  alias lt='eza --tree --level=2 --long --icons --git'
+  alias lta='lt -a'
+fi
+
+
+alias eff='$EDITOR "$(ff)"'
+sff() { if [ $# -eq 0 ]; then echo "Usage: sff <destination> (e.g. sff host:/tmp/)"; return 1; fi; local file; file=$(find . -type f -printf '%T@	%p
+' | sort -rn | cut -f2- | ff) && [ -n "$file" ] && scp "$file" "$1"; }
+
+open() (
+  xdg-open "$@" >/dev/null 2>&1 &
+)
+
+# Directories
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'

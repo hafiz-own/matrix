@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# DESC: Fingerprint Management (enroll, verify, list, delete, status)
+
+set -Eeuo pipefail
+trap 'echo -e "\e[31m[!] Error on line $LINENO\e[0m" >&2' ERR
+
+info()    { echo -e "\e[34m[*]\e[0m $1"; }
+success() { echo -e "\e[32m[✔]\e[0m $1"; }
+warn()    { echo -e "\e[33m[!]\e[0m $1"; }
+die()     { echo -e "\e[31m[✘]\e[0m $1" >&2; exit 1; }
+
+ALL_FINGERS=(
+    "right-index-finger"
+    "right-thumb"
+    "right-middle-finger"
+    "right-ring-finger"
+    "right-little-finger"
+    "left-index-finger"
+    "left-thumb"
+    "left-middle-finger"
+    "left-ring-finger"
+    "left-little-finger"
+)
+
+show_help() {
+    echo "Usage: fingerprint [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  enroll [FINGER]   Enroll a finger (interactive picker if no arg given)"
+    echo "  list              List all enrolled fingers"
+    echo "  verify            Test that a finger scan matches"
+    echo "  delete            Delete all enrolled fingers (with confirmation)"
+    echo "  status            Show driver, service, and PAM configuration status"
+    echo ""
+    echo "Available finger names:"
+    printf '  %s\n' "${ALL_FINGERS[@]}"
+}
+
+check_fprintd() {
+    # Trigger fprintd via D-Bus and check it responds within timeout
+    local OUTPUT
+    OUTPUT=$(fprintd-list "$USER" 2>&1 || true)
+
+    if echo "$OUTPUT" | grep -q "Timeout was reached\|Connection refused\|Failed to get"; then
+        die "fprintd is not responding.\n    Try: sudo systemctl start fprintd"
+    fi
+
+    local COUNT
+    COUNT=$(echo "$OUTPUT" | grep -c "Device at" || true)
+    if [ "$COUNT" -eq 0 ]; then
+        die "No fingerprint sensor detected.\n    Run '08-fingerprint-setup.sh' first to install the driver."
+    fi
+}
+
+get_enrolled() {
+    fprintd-list "$USER" 2>/dev/null \
+        | grep -E "^[[:space:]]+-" \
+        | sed 's/.*#[0-9]*: //' \
+        | tr -d '\r'
+}
+
+cmd_enroll() {
+    local FINGER="${1:-}"
+
+    check_fprintd
+
+    # If no finger given, show interactive picker
+    if [ -z "$FINGER" ]; then
+        if ! command -v gum &>/dev/null; then
+            die "'gum' not installed. Pass a finger name directly: fingerprint enroll right-index-finger"
+        fi
+        FINGER=$(printf '%s\n' "${ALL_FINGERS[@]}" | gum choose --header "Select a finger to enroll:")
+    fi
+
+    # Validate finger name
+    local VALID=false
+    for F in "${ALL_FINGERS[@]}"; do
+        [ "$F" = "$FINGER" ] && VALID=true && break
+    done
+    if ! $VALID; then
+        die "Unknown finger: '$FINGER'\n    Run 'fingerprint --help' for valid names."
+    fi
+
+    # Warn if already enrolled
+    if get_enrolled | grep -q "^${FINGER}$"; then
+        if command -v gum &>/dev/null; then
+            if ! gum confirm "'$FINGER' is already enrolled. Re-enroll it?"; then
+                echo "Cancelled."
+                exit 0
+            fi
+        else
+            warn "'$FINGER' is already enrolled. Proceeding will overwrite it."
+        fi
+    fi
+
+    echo ""
+    info "Enrolling: $FINGER"
+    info "Follow the prompts — swipe your finger repeatedly when asked."
+    echo ""
+    fprintd-enroll -f "$FINGER"
+    echo ""
+    success "$FINGER enrolled successfully!"
+    echo "  Run 'fingerprint verify' to test it."
+}
+
+cmd_list() {
+    check_fprintd
+    local ENROLLED
+    ENROLLED=$(get_enrolled)
+
+    if [ -z "$ENROLLED" ]; then
+        warn "No fingers enrolled yet."
+        echo "  Run: fingerprint enroll"
+    else
+        echo ""
+        echo -e "\e[1mEnrolled fingers:\e[0m"
+        while IFS= read -r FINGER; do
+            echo "  • $FINGER"
+        done <<< "$ENROLLED"
+    fi
+    echo ""
+}
+
+cmd_verify() {
+    check_fprintd
+
+    local ENROLLED
+    ENROLLED=$(get_enrolled)
+
+    if [ -z "$ENROLLED" ]; then
+        die "No fingers enrolled. Run: fingerprint enroll"
+    fi
+
+    local SELECTED
+    SELECTED=$(echo "$ENROLLED" | gum choose --header "Select finger to verify:")
+    if [ -z "$SELECTED" ]; then
+        warn "Verify cancelled."
+        return
+    fi
+
+    echo ""
+    info "Swipe '$SELECTED' when prompted..."
+    echo ""
+    fprintd-verify -f "$SELECTED" "$USER"
+}
+
+cmd_delete() {
+    check_fprintd
+
+    local ENROLLED
+    ENROLLED=$(get_enrolled)
+
+    if [ -z "$ENROLLED" ]; then
+        warn "No fingers enrolled — nothing to delete."
+        exit 0
+    fi
+
+    echo ""
+    echo -e "\e[1mCurrently enrolled fingers:\e[0m"
+    while IFS= read -r FINGER; do
+        echo "  • $FINGER"
+    done <<< "$ENROLLED"
+    echo ""
+
+    if command -v gum &>/dev/null; then
+        if ! gum confirm --default=false "Delete ALL enrolled fingers? This cannot be undone."; then
+            echo "Cancelled."
+            exit 0
+        fi
+    else
+        warn "This will delete ALL enrolled fingers. Press Ctrl+C to cancel."
+        read -r -p "Type 'yes' to confirm: " CONFIRM
+        [ "$CONFIRM" = "yes" ] || { echo "Cancelled."; exit 0; }
+    fi
+
+    fprintd-delete "$USER"
+    success "All fingerprints deleted."
+    echo "  Run 'fingerprint enroll' to add new ones."
+    echo ""
+}
+
+cmd_status() {
+    echo ""
+    echo -e "\e[1m=== Matrix Fingerprint Status ===\e[0m"
+
+    # Service state
+    local SERVICE_STATE
+    local DEVICE_OUTPUT
+    DEVICE_OUTPUT=$(fprintd-list "$USER" 2>&1 || true)
+
+    if echo "$DEVICE_OUTPUT" | grep -q "Timeout was reached\|Connection refused"; then
+        SERVICE_STATE="\e[31mNOT RUNNING\e[0m"
+    else
+        SERVICE_STATE="\e[32mrunning\e[0m"
+    fi
+
+    # Device count
+    local DEVICE_COUNT
+    DEVICE_COUNT=$(echo "$DEVICE_OUTPUT" | grep -c "Device at" || true)
+    local DRIVER_STATE
+    if [ "$DEVICE_COUNT" -gt 0 ]; then
+        DRIVER_STATE="\e[32mDETECTED ($DEVICE_COUNT device(s))\e[0m"
+    else
+        DRIVER_STATE="\e[31mNOT DETECTED\e[0m"
+    fi
+
+    # Enrolled fingers
+    local ENROLLED
+    ENROLLED=$(get_enrolled 2>/dev/null || true)
+    local ENROLL_COUNT
+    ENROLL_COUNT=$(echo "$ENROLLED" | grep -c . || true)
+
+    printf "\nDriver:   %-40b\n" "$DRIVER_STATE"
+    printf "Service:  %-40b\n" "$SERVICE_STATE"
+
+    echo ""
+    if [ "$ENROLL_COUNT" -eq 0 ]; then
+        echo "Enrolled:  none"
+    else
+        echo "Enrolled:  $ENROLL_COUNT finger(s)"
+        while IFS= read -r F; do
+            [ -n "$F" ] && echo "  • $F"
+        done <<< "$ENROLLED"
+    fi
+
+    # PAM status checks
+    echo ""
+    echo -e "\e[1mPAM Configuration:\e[0m"
+
+    pam_check() {
+        local FILE="$1"
+        local LABEL="$2"
+        if grep -q "pam_fprintd.so" "$FILE" 2>/dev/null; then
+            printf "  %-28s \e[32m✅ configured\e[0m\n" "$LABEL"
+        else
+            printf "  %-28s \e[31m❌ not configured\e[0m\n" "$LABEL"
+        fi
+    }
+
+    pam_check /etc/pam.d/sudo      "sudo"
+    pam_check /etc/pam.d/polkit-1  "polkit"
+    pam_check /etc/pam.d/hyprlock  "hyprlock"
+
+    # hyprlock.conf check
+    local HYPRLOCK_CONF="$HOME/.config/hypr/hyprlock.conf"
+    if grep -q "fingerprint {" "$HYPRLOCK_CONF" 2>/dev/null; then
+        printf "  %-28s \e[32m✅ fingerprint block present\e[0m\n" "hyprlock.conf"
+    else
+        printf "  %-28s \e[31m❌ no fingerprint block\e[0m\n" "hyprlock.conf"
+    fi
+
+    echo ""
+    echo -e "\e[1m=================================\e[0m"
+    echo ""
+}
+
+# -------------------------------------------------------
+# Entrypoint
+# -------------------------------------------------------
+case "${1:-}" in
+    enroll)  cmd_enroll "${2:-}" ;;
+    list)    cmd_list ;;
+    verify)  cmd_verify ;;
+    delete)  cmd_delete ;;
+    status)  cmd_status ;;
+    -h|--help|help|"") show_help ;;
+    *)
+        warn "Unknown command: '$1'"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

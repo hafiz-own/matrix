@@ -73,7 +73,7 @@ get_rectangles() {
 
 # ── Check Active Recording ─────────────────────────────────────
 # If triggered with 'stop' (e.g. from Waybar click), kill directly without UI
-if [[ "$1" == "stop" || "$1" == "--stop" ]]; then
+if [[ "${1:-}" == "stop" || "${1:-}" == "--stop" ]]; then
     if pgrep -f "^gpu-screen-recorder" >/dev/null; then
         notify-send -a "Matrix Capture" "Stopping..." "Finalizing video file..." -t 2000
         pkill -SIGINT -f "^gpu-screen-recorder"

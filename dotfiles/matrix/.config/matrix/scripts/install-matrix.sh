@@ -69,7 +69,7 @@ done
 
 # 2. Prompt the user using Gum
 echo "Select the modules you wish to install:"
-echo " (Use Space to toggle, Enter to confirm)"
+echo " (Use x to toggle, a to select all, Enter to confirm)"
 echo ""
 
 # Temporarily disable set -e so the script doesn't crash if the user hits ESC
@@ -110,6 +110,6 @@ echo ""
 echo "=============================================="
 echo "     Welcome to the charms of The Matrix      "
 echo "=============================================="
+
 # Flush any lingering terminal capability responses (e.g., 2026;2$y) leaked by gum
 read -t 0.1 -s -r -d '' _ || true
-

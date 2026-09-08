@@ -69,14 +69,18 @@ cmake -B build -G Ninja -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release
 info "Compiling utilizing all $(nproc) threads..."
 cmake --build build --config Release -j"$(nproc)"
 
-info "Installing binaries to /opt/llama.cpp..."
-sudo mkdir -p /opt/llama.cpp
-sudo rm -rf /opt/llama.cpp/*
-sudo cp -a build/bin/* /opt/llama.cpp/
+info "Installing via CMake to /opt/llama.cpp..."
+sudo rm -rf /opt/llama.cpp
+sudo cmake --install build --prefix /opt/llama.cpp
+
+info "Configuring dynamic linker for llama.cpp libraries..."
+echo "/opt/llama.cpp/lib" | sudo tee /etc/ld.so.conf.d/llamacpp.conf > /dev/null
+echo "/opt/llama.cpp/lib64" | sudo tee -a /etc/ld.so.conf.d/llamacpp.conf > /dev/null
+sudo ldconfig
 
 info "Creating global symlinks in /usr/local/bin..."
 sudo mkdir -p /usr/local/bin
-for bin in /opt/llama.cpp/llama-*; do
+for bin in /opt/llama.cpp/bin/llama-*; do
     if [[ -x "$bin" && -f "$bin" ]]; then
         sudo ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"
     fi

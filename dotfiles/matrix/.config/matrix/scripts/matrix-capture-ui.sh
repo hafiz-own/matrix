@@ -76,13 +76,17 @@ get_rectangles() {
 if [[ "${1:-}" == "stop" || "${1:-}" == "--stop" ]]; then
     if pgrep -f "^gpu-screen-recorder" >/dev/null; then
         notify-send -a "Matrix Capture" "Stopping..." "Finalizing video file..." -t 2000
-        pkill -SIGINT -f "^gpu-screen-recorder"
-        pkill -f "MatrixWebcamOverlay" 2>/dev/null
+        pkill -SIGINT -f "^gpu-screen-recorder" || true
+        if [ -f /tmp/matrix_webcam.pid ]; then
+            kill $(cat /tmp/matrix_webcam.pid) 2>/dev/null || true
+            rm -f /tmp/matrix_webcam.pid
+        fi
+        pkill -f "MatrixWebcamOverlay" 2>/dev/null || true
         
         # Wait for gpu-screen-recorder to finish writing the MP4 header
         while pgrep -f "^gpu-screen-recorder" >/dev/null; do sleep 0.1; done
         
-        pkill -RTMIN+8 waybar
+        pkill -RTMIN+8 waybar || true
         sleep 1
         LATEST_MP4=$(ls -t "$VIDEO_DIR"/*.mp4 2>/dev/null | head -n 1)
         NACTION=$(notify-send -a "Matrix Capture" "Screen recording saved!" "Saved to $VIDEO_DIR" -A "play=Open in MPV" -t 5000)
@@ -101,14 +105,18 @@ if pgrep -f "^gpu-screen-recorder" >/dev/null; then
     notify-send -a "Matrix Capture" "Stopping..." "Finalizing video file..." -t 2000
     
     # SIGINT is required by gpu-screen-recorder to save the MP4 properly without corruption
-    pkill -SIGINT -f "^gpu-screen-recorder"
-    pkill -f "MatrixWebcamOverlay" 2>/dev/null
+    pkill -SIGINT -f "^gpu-screen-recorder" || true
+    if [ -f /tmp/matrix_webcam.pid ]; then
+        kill $(cat /tmp/matrix_webcam.pid) 2>/dev/null || true
+        rm -f /tmp/matrix_webcam.pid
+    fi
+    pkill -f "MatrixWebcamOverlay" 2>/dev/null || true
     
     # Wait for gpu-screen-recorder to finish writing the MP4 header
     while pgrep -f "^gpu-screen-recorder" >/dev/null; do sleep 0.1; done
     
     # Trigger Waybar to hide the recording indicator instantly
-    pkill -RTMIN+8 waybar
+    pkill -RTMIN+8 waybar || true
     
     sleep 1
     LATEST_MP4=$(ls -t "$VIDEO_DIR"/*.mp4 2>/dev/null | head -n 1)
@@ -134,13 +142,13 @@ if [[ "$ACTION" == *"Screen Record"* ]]; then
     
     [[ -z "$AUDIO_OPT" ]] && exit 0
     
-    if [[ "$AUDIO_OPT" == *"Desktop Audio"* ]]; then
-        AUDIO_ARGS=(-a default_output -ac aac)
-    elif [[ "$AUDIO_OPT" == *"Desktop + Mic"* ]]; then
-        AUDIO_ARGS=(-a "default_output|default_input" -ac aac)
-    elif [[ "$AUDIO_OPT" == *"Webcam"* ]]; then
+    if [[ "$AUDIO_OPT" == *"Webcam"* ]]; then
         AUDIO_ARGS=(-a "default_output|default_input" -ac aac)
         WEBCAM_ENABLED=true
+    elif [[ "$AUDIO_OPT" == *"Desktop + Mic"* ]]; then
+        AUDIO_ARGS=(-a "default_output|default_input" -ac aac)
+    elif [[ "$AUDIO_OPT" == *"Desktop Audio"* ]]; then
+        AUDIO_ARGS=(-a default_output -ac aac)
     fi
 fi
 
@@ -227,11 +235,18 @@ elif [[ "$ACTION" == *"Screen Record"* ]]; then
         # Dynamically find the first connected video device
         WEBCAM_DEVICE=$(v4l2-ctl --list-devices 2>/dev/null | grep "/dev/video" | head -n 1 | awk '{print $1}')
         if [[ -n "$WEBCAM_DEVICE" ]]; then
+            # Turn off dynamic framerate to prevent motion blur ("face melting")
+            v4l2-ctl -d "$WEBCAM_DEVICE" -c exposure_dynamic_framerate=0 2>/dev/null || true
+            
+            # Use MJPEG to bypass USB bandwidth limits and hit 30 FPS
             mpv "av://v4l2:$WEBCAM_DEVICE" \
+                --demuxer-lavf-o=video_size=1920x1080,input_format=mjpeg \
                 --profile=low-latency --untimed --no-cache \
-                --title="MatrixWebcamOverlay" \
+                --wayland-app-id="MatrixWebcamOverlay" \
+                --x11-name="MatrixWebcamOverlay" \
                 --no-border --no-audio --no-osc --osd-level=0 \
-                --really-quiet &>/dev/null &
+                --load-scripts=no --no-terminal --really-quiet &>/dev/null &
+            echo $! > /tmp/matrix_webcam.pid
             sleep 0.5 # Give MPV time to map the window
         fi
     fi
@@ -247,7 +262,7 @@ elif [[ "$ACTION" == *"Screen Record"* ]]; then
     fi
     
     # Trigger Waybar to show the recording indicator instantly
-    pkill -RTMIN+8 waybar
+    pkill -RTMIN+8 waybar || true
     
     notify-send -a "Matrix Capture" "Recording Started" "Trigger this script again to stop recording." -t 3000
 fi

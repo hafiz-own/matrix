@@ -13,3 +13,9 @@ desc = "Enter the child directory, or open the file"
 on   = "f"
 run  = "plugin jump-to-char"
 desc = "Jump to char"
+
+[[mgr.prepend_keymap]]
+on = ["g","C"]
+run = "cd /data/Study/Current"
+desc = "go to Study/Current"
+

@@ -33,4 +33,11 @@ hl.window_rule({
     size = "50% 60%",
     center = true,
 })
-
+hl.window_rule({
+    match = {
+        class = ".*obs.*",
+        title = "^Windowed Projector.*"
+    },
+    workspace = "7 silent",
+    fullscreen = true
+})

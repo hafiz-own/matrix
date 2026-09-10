@@ -9,9 +9,18 @@ hl.monitor({
     vrr = 0
 })
 hl.monitor({
-    output = "HDMI-A-1",
-    mode = "1600x1200@60.0",
+    output = "HDMI-A-1", mode = "1600x1200@60.0",
     position = "1920x0",
     scale = 1,
     vrr = 0
+    -- mirror = "eDP-1"
 })
+-- fallback rule for any mointor
+hl.monitor({
+    output = "",
+    mode = "preferred",
+    position = "auto",
+    scale = 1,
+    mirror = 1
+})
+

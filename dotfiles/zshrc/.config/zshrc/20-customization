@@ -11,3 +11,33 @@ HISTSIZE=10000
 SAVEHIST=10000
 setopt appendhistory
 ZSH_THEME="powerlevel10k/powerlevel10k"
+mirror_ws() {
+    local ws=$1
+    if [ -z "$ws" ]; then echo "Usage: mirror_ws <workspace_number>"; return 1; fi
+    
+    # 1. Create a specifically named virtual output
+    hyprctl output create headless present
+    
+    # 2. Configure screens
+    hyprctl eval "hl.monitor({ output = 'present', mode = '1600x1200@60', position = '3520x0', scale = 1 })"
+    hyprctl eval "hl.monitor({ output = 'HDMI-A-1', mode = '1600x1200@60', position = '1920x0', scale = 1, mirror = 'present' })"
+    
+    # 3. Use 0.55+ Lua syntax to move and focus the workspace
+    hyprctl dispatch "hl.dsp.workspace.move({ workspace = '${ws}', monitor = 'present' })"
+    hyprctl dispatch "hl.dsp.focus({ workspace = '${ws}' })"
+}
+
+unmirror_ws() {
+    local ws=$1
+    if [ -z "$ws" ]; then echo "Usage: unmirror_ws <workspace_number>"; return 1; fi
+    
+    # 1. Break the mirror
+    hyprctl eval "hl.monitor({ output = 'HDMI-A-1', mode = '1600x1200@60', position = '1920x0', scale = 1, mirror = 'none' })"
+    
+    # 2. Move the workspace back to your laptop screen
+    hyprctl dispatch "hl.dsp.workspace.move({ workspace = '${ws}', monitor = 'eDP-1' })"
+    hyprctl dispatch "hl.dsp.focus({ workspace = '${ws}' })"
+    
+    # 3. Destroy the virtual output
+    hyprctl output remove present
+}

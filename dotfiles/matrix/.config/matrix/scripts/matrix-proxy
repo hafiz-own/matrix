@@ -90,6 +90,11 @@ EOF
     # Requires sudo. We use sed to safely remove old lines without destroying the file.
     echo " -> Updating /etc/environment and /etc/profile.d/proxy.sh (Requires sudo)..."
     
+    # 6. Pip (if installed)
+    if command -v pip &> /dev/null; then
+        echo " -> Setting Pip proxy..."
+        pip config set global.proxy "$proxy_url"
+    fi
     sudo sed -i '/^http_proxy=/Id' /etc/environment
     sudo sed -i '/^https_proxy=/Id' /etc/environment
     sudo sed -i '/^ftp_proxy=/Id' /etc/environment
@@ -136,7 +141,12 @@ disable_proxy() {
     sudo sed -i '/^ftp_proxy=/Id' /etc/environment
     sudo sed -i '/^all_proxy=/Id' /etc/environment
     sudo sed -i '/^no_proxy=/Id' /etc/environment
-    
+   
+    # 6. Pip 
+    if command -v pip &> /dev/null; then
+        echo " -> Resetting Pip..."
+        pip config unset global.proxy || true
+    fi
     sudo rm -f /etc/profile.d/proxy.sh
     
     echo ""

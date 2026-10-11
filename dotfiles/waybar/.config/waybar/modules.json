@@ -22,6 +22,7 @@
       "class<Alacritty>": "",
       "class<foot>": "",
       "class<thunar>": "",
+      "title<Yazi.*>":"",
       "class<org.gnome.Nautilus>": "",
       "class<org.kde.dolphin>": "",
       "class<nemo>": "",

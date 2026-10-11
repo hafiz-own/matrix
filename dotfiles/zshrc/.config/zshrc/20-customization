@@ -41,3 +41,4 @@ unmirror_ws() {
     # 3. Destroy the virtual output
     hyprctl output remove present
 }
+eval "$(zoxide init zsh)"

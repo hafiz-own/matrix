@@ -95,21 +95,15 @@ hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("~/.config/hypr/scripts/brightne
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("~/.config/hypr/scripts/brightness-osd.sh 10%-"), { locked = true, repeating = true, description = "Decrease brightness" })
 hl.bind("CTRL + XF86MonBrightnessUp",   hl.dsp.exec_cmd("~/.config/hypr/scripts/brightness-osd.sh 5%+"),  { locked = true, repeating = true, description = "Increase brightness (fine)" })
 hl.bind("CTRL + XF86MonBrightnessDown", hl.dsp.exec_cmd("~/.config/hypr/scripts/brightness-osd.sh 5%-"),  { locked = true, repeating = true, description = "Decrease brightness (fine)" })
--- Requires playerctl
-hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("mpc next"),       { locked = true, description = "Next track" })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("mpc toggle"), { locked = true, description = "Pause audio" })
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("mpc toggle"), { locked = true, description = "Play audio" })
-hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("mpc previous"),   { locked = true, description = "Previous track" })
+-- Playback controls (MPD priority → playerctl fallback) — locked = true enables lockscreen control
+hl.bind("SUPER + F9",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh toggle"), { locked = true, description = "Play/Pause" })
+hl.bind("SUPER + F10", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh prev"),   { locked = true, description = "Previous track" })
+hl.bind("SUPER + F11", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh next"),   { locked = true, description = "Next track" })
+hl.bind("SUPER + F12", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh stop"),   { locked = true, description = "Stop playback" })
 
--- Playback controls — locked = true enables lockscreen control
-hl.bind("SUPER + F9",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh toggle"), { locked = true })
-hl.bind("SUPER + F10", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh prev"),   { locked = true })
-hl.bind("SUPER + F11", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh next"),   { locked = true })
-hl.bind("SUPER + F12", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh stop"),   { locked = true })
-
--- MPD volume
-hl.bind("SUPER + F7", hl.dsp.exec_cmd("mpc volume +5"), { locked = true })
-hl.bind("SUPER + F6", hl.dsp.exec_cmd("mpc volume -5"), { locked = true })
+-- MPD volume (also lazy-starts MPD if not running)
+hl.bind("SUPER + F7", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh volume +5%"), { locked = true, description = "MPD volume up" })
+hl.bind("SUPER + F6", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh volume -5%"), { locked = true, description = "MPD volume down" })
 
 -- Lyrics toggle
 hl.bind("SUPER + F8", hl.dsp.exec_cmd("~/.config/hypr/scripts/lyrics_toggle.sh"), { locked = true })

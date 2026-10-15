@@ -7,14 +7,13 @@
 # Add more listeners here as needed, following the format:
 # LISTENERS["short-name"]="full/path/to/script.sh"
 declare -A LISTENERS
-LISTENERS["low-bat-notification"]="$HOME/.config/matrix/listeners/low-bat-notification.sh"
+# (low-bat-notification now runs as low-battery.service, a systemd user unit)
 # Example for another listener:
 # LISTENERS["another-listener"]="$HOME/.config/matrix/listeners/another-listener.sh"
 
 # Function to start a specific listener script
 start_listener() {
     local script_name="$1"
-    local init_flag="$2" # New argument for initialization flag
     local script_path="${LISTENERS[$script_name]}"
 
     if [ -z "$script_path" ]; then
@@ -42,7 +41,7 @@ start_listener() {
 
     # Start the script in the background using nohup to detach it from the terminal
     # Redirect stdout and stderr to /dev/null to prevent nohup.out files
-    nohup "$script_path" "$init_flag" >/dev/null 2>&1 &
+    nohup "$script_path" >/dev/null 2>&1 &
     echo "Listener '$script_name' started successfully."
 }
 
@@ -135,7 +134,7 @@ case "${1:-}" in
     restart_listener "$2"
     ;;
 *)
-    echo "Usage: $0 [--startall | --stopall | --restartall | --startall-init | --start <listener_name> | --stop <listener_name> | --restart <listener_name> | --start-init <listener_name>]"
+    echo "Usage: $0 [--startall | --stopall | --restartall | --start <listener_name> | --stop <listener_name> | --restart <listener_name>]"
     echo ""
     echo "Registered listeners:"
     for key in "${!LISTENERS[@]}"; do

@@ -175,7 +175,7 @@ systemctl --user enable --now pipewire pipewire-pulse wireplumber 2>/dev/null &&
 # Session daemons run as user units under hyprland-session.target (started
 # from hypr/conf/autostart.lua). voxtype's unit comes from install-extras.
 systemctl --user daemon-reload 2>/dev/null
-USER_UNITS=(hypridle swaync waybar elephant walker voxtype)
+USER_UNITS=(hypridle swaync waybar elephant walker low-battery voxtype)
 for unit in "${USER_UNITS[@]}"; do
     if systemctl --user cat "$unit.service" &>/dev/null; then
         systemctl --user enable "$unit.service" &>/dev/null && \

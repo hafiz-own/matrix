@@ -2,7 +2,7 @@ hl.on("hyprland.start", function ()
     -- Export the session environment to systemd/dbus, restart the portals so
     -- they pick it up, then start hyprland-session.target, which brings up
     -- the session daemons as user units (hypridle, swaync, waybar, elephant,
-    -- walker, voxtype). One shell so the steps run in order (exec_cmd is async).
+    -- walker, voxtype, low-battery). One shell so the steps run in order (exec_cmd is async).
     local env = table.concat({
         "WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE",
         "HYPRLAND_INSTANCE_SIGNATURE", "QT_QPA_PLATFORMTHEME", "QS_ICON_THEME",
@@ -13,9 +13,6 @@ hl.on("hyprland.start", function ()
         .. "systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland; "
         .. "systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal; "
         .. "systemctl --user start --no-block hyprland-session.target'")
-
-    -- Start listeners
-    hl.exec_cmd("~/.config/matrix/listeners.sh --startall")
 
     -- Start polkit daemon
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")

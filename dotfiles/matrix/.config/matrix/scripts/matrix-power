@@ -70,7 +70,7 @@ EOF
 }
 
 # 3. Clean execution map without using 'eval'
-case "$1" in
+case "${1:-}" in
     -l|--lock)
         lock_action
         ;;

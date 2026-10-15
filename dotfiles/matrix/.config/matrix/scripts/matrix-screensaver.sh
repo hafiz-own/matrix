@@ -33,7 +33,7 @@ fi
 
 TIME_FILE="/tmp/matrix_screensaver_start"
 
-if [ "$1" == "start" ]; then
+if [ "${1:-}" == "start" ]; then
     # Prevent multiple instances
     if pgrep -f "kitty.*matrix-screensaver" >/dev/null; then
         exit 0
@@ -45,7 +45,7 @@ if [ "$1" == "start" ]; then
     # Launch screensaver
     kitty --start-as=fullscreen --class matrix-screensaver -e cmatrix -b -s &
     
-elif [ "$1" == "stop" ]; then
+elif [ "${1:-}" == "stop" ]; then
     # If the screensaver is not running, do nothing
     if ! pgrep -f "kitty.*matrix-screensaver" >/dev/null; then
         exit 0

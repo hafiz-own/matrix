@@ -88,7 +88,7 @@ restart_listener() {
 }
 
 # Main script logic based on command-line arguments
-case "$1" in
+case "${1:-}" in
 --startall)
     echo "Starting all registered listeners..."
     for key in "${!LISTENERS[@]}"; do

@@ -9,9 +9,6 @@ hl.on("hyprland.start", function ()
         .. "systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal'")
 
 
-    -- Load cursor
-    hl.exec_cmd("hyprctl setcursor Bibata-Modern-Ice 24")
-
     -- Start listeners
     hl.exec_cmd("~/.config/matrix/listeners.sh --startall")
 

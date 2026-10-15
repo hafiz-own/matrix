@@ -31,7 +31,15 @@ fi
 
 
 # 1. Define fallbacks as explicit functions to prevent quote-stripping issues
-lock_action()     { pidof hyprlock || hyprlock; }
+# Lock through logind so every lock takes hypridle's lock_cmd (lock.sh);
+# without hypridle running, call lock.sh directly.
+lock_action() {
+    if systemctl --user -q is-active hypridle.service; then
+        loginctl lock-session
+    else
+        "$HOME/.config/hypr/scripts/lock.sh"
+    fi
+}
 suspend_action()  { systemctl suspend; }
 logout_action()   { hyprctl dispatch 'hl.dsp.exit()'; }
 reboot_action()   { systemctl reboot; }

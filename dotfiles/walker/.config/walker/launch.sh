@@ -6,9 +6,9 @@ SOCKET_PATH="/run/user/$USER_ID/walker/walker.sock"
 CONFIG_FILE="$HOME/.config/walker/config.toml"
 
 # Fast native bash read to grab the theme without spawning `cat`
-read -r walker_theme < "$HOME/.config/matrix/settings/walker-theme" 2>/dev/null || walker_theme="macos-spotlight-minimal-light"
+read -r walker_theme < "$HOME/.config/matrix/settings/walker-theme" 2>/dev/null || walker_theme="matrix-minimal"
 if [ -z "$walker_theme" ]; then
-    walker_theme="macos-spotlight-minimal-light"
+    walker_theme="matrix-minimal"
 fi
 
 # Fast native bash string parsing to extract current theme from TOML without spawning `grep`
@@ -37,13 +37,13 @@ if [ "$walker_theme" != "$current_config_theme" ]; then
     echo ":: Theme changed from '$current_config_theme' to '$walker_theme'. Syncing config.toml... ::" >&2
     
     # Update theme value in config.toml
-    sed -i "s/theme = \".*\"/theme = \"$walker_theme\"/" "$CONFIG_FILE"
+    sed -i "s/^theme = \".*\"/theme = \"$walker_theme\"/" "$CONFIG_FILE"
     
     # Update empty providers setting (collapse list on minimal, show apps on non-minimal)
     if [[ "$walker_theme" =~ minimal|clean|spotlight ]]; then
-        sed -i 's/empty = .*/empty = [] # providers to be queried when query is empty/' "$CONFIG_FILE"
+        sed -i 's/^empty = .*/empty = [] # providers to be queried when query is empty/' "$CONFIG_FILE"
     else
-        sed -i 's/empty = .*/empty = ["desktopapplications"] # providers to be queried when query is empty/' "$CONFIG_FILE"
+        sed -i 's/^empty = .*/empty = ["desktopapplications"] # providers to be queried when query is empty/' "$CONFIG_FILE"
     fi
     
     # Restart the background service to apply the new theme/config

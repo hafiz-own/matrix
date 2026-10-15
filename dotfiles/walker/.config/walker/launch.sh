@@ -20,6 +20,18 @@ while read -r line; do
     fi
 done < "$CONFIG_FILE"
 
+# (Re)start the walker service: via systemd when walker.service is running
+# in the session, otherwise as a detached background process.
+start_service() {
+    if systemctl --user -q is-active graphical-session.target; then
+        systemctl --user restart walker.service
+    else
+        pkill -x walker
+        sleep 0.1
+        setsid walker --gapplication-service >/dev/null 2>&1 &
+    fi
+}
+
 # Check if theme has changed
 if [ "$walker_theme" != "$current_config_theme" ]; then
     echo ":: Theme changed from '$current_config_theme' to '$walker_theme'. Syncing config.toml... ::" >&2
@@ -34,11 +46,9 @@ if [ "$walker_theme" != "$current_config_theme" ]; then
         sed -i 's/empty = .*/empty = ["desktopapplications"] # providers to be queried when query is empty/' "$CONFIG_FILE"
     fi
     
-    # Restart the background service to apply new theme/config (using setsid to detach)
-    pkill "^walker$"
-    sleep 0.1
-    setsid walker --gapplication-service >/dev/null 2>&1 &
-    
+    # Restart the background service to apply the new theme/config
+    start_service
+
     # Tightly poll for the socket (faster loop)
     for i in {1..20}; do
         if [ -S "$SOCKET_PATH" ]; then break; fi
@@ -55,16 +65,14 @@ if [ $# -eq 0 ] && [ -S "$SOCKET_PATH" ]; then
     if ! ncat -U "$SOCKET_PATH" >/dev/null 2>&1; then
         # Service is dead! Auto-heal by restarting it in the background
         echo ":: Walker service is dead. Restarting service... ::" >&2
-        pkill "^walker$"
-        sleep 0.1
-        setsid walker --gapplication-service >/dev/null 2>&1 &
+        start_service
         walker -t "$walker_theme" "$@"
     fi
 else
     # Auto-start service if the socket file does not exist
     if [ ! -S "$SOCKET_PATH" ]; then
         echo ":: Walker service not running. Starting service... ::" >&2
-        setsid walker --gapplication-service >/dev/null 2>&1 &
+        start_service
     fi
     walker -t "$walker_theme" "$@"
 fi

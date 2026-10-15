@@ -1,0 +1,9 @@
+# Started from Hyprland's autostart (after the environment is imported) and
+# stopped on hyprland.shutdown. Pulls in graphical-session.target, which the
+# daemons below are WantedBy / PartOf, so they start and stop with the session.
+[Unit]
+Description=Hyprland session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

@@ -33,9 +33,7 @@ fi
 # Notifications
 source "$HOME/.config/matrix/scripts/matrix-notification-handler"
 
-killall hypridle
-sleep 1
-hypridle &
+systemctl --user restart hypridle.service
 
 notify_user --a "Hypridle" \
         --s "Hypridle has been restarted." \

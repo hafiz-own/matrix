@@ -1,135 +1,223 @@
 local utils = require 'mp.utils'
 
 -- =========================================================================
--- 1. Hold SPACE to Speed Up to 2.0x, Tap to Toggle Pause
+-- 1. Hold SPACE → 2.0x speed; Tap SPACE → Toggle Pause
 -- =========================================================================
-local timer = nil
-local original_speed = 1.0
-local is_speeding = false
+--
+-- How it works:
+--   - On key-down, start a 300ms timer.
+--   - If the key is released before the timer fires → it was a tap → toggle pause.
+--   - If the timer fires before release → it's a hold → jump to 2x speed.
+--   - On key-up after a hold → restore original speed.
+-- =========================================================================
 
-local function handle_space(table)
-    if table.event == "down" then
-        if timer then timer:kill() end
-        timer = mp.add_timeout(0.3, function()
-            original_speed = mp.get_property_native("speed")
-            mp.set_property("speed", 2.0)
-            is_speeding = true
-            mp.osd_message("Speed: 2.0x (Hold)", 2)
+local hold_timer   = nil   -- pending timer before we decide tap vs hold
+local is_holding   = false -- true while we are in 2x hold mode
+local saved_speed  = nil   -- speed captured just before going to 2x
+
+local HOLD_THRESHOLD_MS = 300  -- ms to wait before treating as a hold
+local SPEED_2X         = 2.0
+
+local function on_space(event)
+    if event.event == "down" then
+        -- Cancel any previous timer (shouldn't exist, but be safe)
+        if hold_timer then hold_timer:kill(); hold_timer = nil end
+        is_holding = false
+
+        hold_timer = mp.add_timeout(HOLD_THRESHOLD_MS / 1000, function()
+            hold_timer  = nil
+            is_holding  = true
+            saved_speed = mp.get_property_native("speed")
+            mp.set_property_number("speed", SPEED_2X)
+            mp.osd_message(("▶▶ %.1fx (hold SPACE)"):format(SPEED_2X), 99)
         end)
-    elseif table.event == "up" then
-        if timer then 
-            timer:kill() 
-            timer = nil
-        end
-        if is_speeding then
-            mp.set_property("speed", original_speed)
-            is_speeding = false
-            mp.osd_message("Speed: " .. string.format("%.2f", original_speed) .. "x", 2)
-        else
-            local pause = mp.get_property_native("pause")
-            mp.set_property("pause", not pause)
+
+    elseif event.event == "up" then
+        if hold_timer then
+            -- Timer hadn't fired yet → this was a tap → toggle pause
+            hold_timer:kill()
+            hold_timer = nil
+            local paused = mp.get_property_native("pause")
+            mp.set_property("pause", not paused)
+        elseif is_holding then
+            -- We were in hold-mode → restore speed
+            is_holding = false
+            local restore = saved_speed or 1.0
+            mp.set_property_number("speed", restore)
+            saved_speed = nil
+            mp.osd_message(("▶ Speed: %.2fx"):format(restore), 2)
         end
     end
 end
 
-mp.add_key_binding("SPACE", "space_speed_pause", handle_space, {complex=true})
+mp.add_key_binding("SPACE", "space_speed_pause", on_space, {complex = true})
+
 
 -- =========================================================================
--- 2. Press Y to show Playlist Time Remaining (Top Right)
+-- 2. Press Y → Show Playlist Time Remaining (Top Right)
+--    Press Y again while overlay is visible → dismiss immediately
 -- =========================================================================
-local function format_time(seconds)
-    if not seconds then return "00:00:00" end
-    local s = seconds
+--
+-- Shows (top-right, 7s timeout):
+--   Video N of M
+--   Remaining: HH:MM:SS  (at 1x)
+--   At Xx:     HH:MM:SS  (at current speed, if not 1x)
+--   Total playlist: HH:MM:SS  (at 1x)
+-- =========================================================================
+
+-- ── helpers ──────────────────────────────────────────────────────────────
+
+local function hms(seconds)
+    if not seconds or seconds < 0 then return "??:??:??" end
+    local s = math.floor(seconds + 0.5)
     local h = math.floor(s / 3600)
     s = s % 3600
     local m = math.floor(s / 60)
-    s = math.floor(s % 60)
-    return string.format("%02d:%02d:%02d", h, m, s)
+    s = s % 60
+    if h > 0 then
+        return string.format("%d:%02d:%02d", h, m, s)
+    else
+        return string.format("%d:%02d", m, s)
+    end
 end
 
-local function get_duration(filename)
-    if not filename then return 0 end
-    if filename:match("^http") or filename:match("^ytdl://") or filename:match("^magnet:") then
-        return 0
+-- Get duration of a local file via ffprobe.
+-- Returns number of seconds, or nil on failure.
+local function probe_duration(filename)
+    if not filename then return nil end
+    -- Skip URLs / streams – ffprobe would hang or fail
+    if filename:match("^https?://") or filename:match("^ytdl://")
+       or filename:match("^magnet:") or filename:match("^rtmp")
+       or filename:match("^rtsp") then
+        return nil
     end
-    
-    local cmd = {
-        "ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filename
-    }
-    local res = utils.subprocess({ args = cmd, cancellable = false })
+
+    local res = utils.subprocess({
+        args = {
+            "ffprobe", "-v", "quiet",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            filename
+        },
+        cancellable = false,
+        max_size     = 256,
+    })
     if res.status == 0 and res.stdout then
-        local dur = tonumber(res.stdout)
-        if dur then return dur end
+        return tonumber(res.stdout:match("[%d%.]+"))
     end
-    return 0
+    return nil
 end
 
-local playlist_ov = nil
-local playlist_ov_timer = nil
+-- ── overlay state ─────────────────────────────────────────────────────────
 
-local function show_playlist_remaining()
-    local playlist = mp.get_property_native("playlist")
-    local current_pos = mp.get_property_native("playlist-pos-1") -- 1-indexed
+local ov       = nil   -- mp.OsdOverlay object
+local ov_timer = nil   -- auto-hide timer
 
-    if not playlist or not current_pos then
-        mp.osd_message("No playlist active.", 4)
+local function dismiss_overlay()
+    if ov_timer then ov_timer:kill(); ov_timer = nil end
+    if ov then ov:remove(); ov = nil end
+end
+
+-- ── main logic ────────────────────────────────────────────────────────────
+
+local function show_playlist_info()
+    -- Toggle off if already showing
+    if ov then
+        dismiss_overlay()
         return
     end
 
-    local total_time_left = 0
-    local has_unknown = false
+    local playlist    = mp.get_property_native("playlist")
+    local current_pos = mp.get_property_native("playlist-pos")   -- 0-indexed
+    local speed       = mp.get_property_native("speed") or 1.0
+    local duration    = mp.get_property_native("duration")
+    local time_pos    = mp.get_property_native("time-pos")
 
-    -- Add current video remaining
-    local duration = mp.get_property_native("duration")
-    local time_pos = mp.get_property_native("time-pos")
+    -- Guard: need a playlist
+    if not playlist or #playlist == 0 then
+        mp.osd_message("No playlist active.", 3)
+        return
+    end
+
+    if not current_pos then current_pos = 0 end
+    local current_1idx = current_pos + 1   -- human-readable 1-indexed
+    local total_items  = #playlist
+
+    -- ── accumulate remaining time ─────────────────────────────────────────
+    local remaining_secs = 0
+    local total_secs     = 0
+    local unknown_count  = 0
+
+    -- Current video: time left in it
     if duration and time_pos then
-        total_time_left = total_time_left + (duration - time_pos)
+        local cur_remaining = math.max(0, duration - time_pos)
+        remaining_secs      = remaining_secs + cur_remaining
+        total_secs          = total_secs     + duration
     else
-        has_unknown = true
+        unknown_count = unknown_count + 1
     end
 
-    -- Add remaining videos in playlist
-    for i = current_pos + 1, #playlist do
+    -- Preceding items: full duration (for total only)
+    for i = 1, current_pos do
         local item = playlist[i]
-        local dur = item.playtime
-        if not dur then
-            dur = get_duration(item.filename)
-        end
-        
-        if dur and dur > 0 then
-            total_time_left = total_time_left + dur
+        local dur  = probe_duration(item.filename)
+        if dur then
+            total_secs = total_secs + dur
         else
-            has_unknown = true
+            unknown_count = unknown_count + 1
         end
     end
 
-    local current_speed = mp.get_property_native("speed")
-    
-    local msg = "Playlist Left: " .. format_time(total_time_left) .. " (1x)"
-    if current_speed ~= 1.0 then
-        local speed_time_left = total_time_left / current_speed
-        msg = msg .. "\nAt " .. string.format("%.2f", current_speed) .. "x: " .. format_time(speed_time_left)
-    end
-    
-    if has_unknown then
-        msg = msg .. "\n(Some items unknown/skipped)"
-    end
-
-    if playlist_ov then
-        playlist_ov:remove()
-        if playlist_ov_timer then playlist_ov_timer:kill() end
-    end
-
-    playlist_ov = mp.create_osd_overlay("ass-events")
-    playlist_ov.data = "{\\an9}" .. msg
-    playlist_ov:update()
-
-    playlist_ov_timer = mp.add_timeout(5, function()
-        if playlist_ov then
-            playlist_ov:remove()
-            playlist_ov = nil
+    -- Subsequent items: full duration (remaining + total)
+    for i = current_1idx + 1, total_items do
+        local item = playlist[i]
+        local dur  = probe_duration(item.filename)
+        if dur then
+            remaining_secs = remaining_secs + dur
+            total_secs     = total_secs     + dur
+        else
+            unknown_count  = unknown_count  + 1
         end
+    end
+
+    -- ── build ASS overlay lines ───────────────────────────────────────────
+    -- \an9 = top-right anchor, \N = hard newline in ASS
+    local W  = "{\\an9\\bord1.5\\shad1\\c&HFFFFFF&\\3c&H000000&\\fs22\\b1}"
+    local N  = "{\\an9\\bord1.5\\shad1\\c&HFFFFFF&\\3c&H000000&\\fs20}"
+    local G  = "{\\an9\\bord1.5\\shad1\\c&H80FF80&\\3c&H000000&\\fs20}"
+    local S  = "{\\an9\\bord1.5\\shad1\\c&HCCCCCC&\\3c&H000000&\\fs18}"
+    local GS = "{\\an9\\bord1.5\\shad1\\c&H80CC80&\\3c&H000000&\\fs18}"
+    local HI = "{\\an9\\bord1\\shad0\\c&H8888FF&\\3c&H000000&\\fs16}"
+
+    local parts = {}
+
+    parts[#parts+1] = W .. string.format("Video %d of %d", current_1idx, total_items)
+    parts[#parts+1] = N .. string.format("Remaining (1x):   %s", hms(remaining_secs))
+
+    if math.abs(speed - 1.0) > 0.01 then
+        parts[#parts+1] = G .. string.format("Remaining (%.2fx): %s", speed, hms(remaining_secs / speed))
+    end
+
+    parts[#parts+1] = S .. string.format("Total playlist:   %s", hms(total_secs))
+
+    if math.abs(speed - 1.0) > 0.01 then
+        parts[#parts+1] = GS .. string.format("Total (%.2fx):     %s", speed, hms(total_secs / speed))
+    end
+
+    if unknown_count > 0 then
+        parts[#parts+1] = HI .. string.format("(%d item(s) duration unknown)", unknown_count)
+    end
+
+    -- ── render ────────────────────────────────────────────────────────────
+    ov      = mp.create_osd_overlay("ass-events")
+    ov.data = table.concat(parts, "\\N")
+    ov:update()
+
+    -- auto-dismiss after 7 seconds
+    ov_timer = mp.add_timeout(7, function()
+        ov_timer = nil
+        dismiss_overlay()
     end)
 end
 
-mp.add_key_binding("y", "playlist_remaining", show_playlist_remaining)
+mp.add_key_binding("y", "playlist_info", show_playlist_info)

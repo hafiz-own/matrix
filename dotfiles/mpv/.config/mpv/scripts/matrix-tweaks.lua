@@ -15,14 +15,36 @@ local hold_timer   = nil   -- pending timer before we decide tap vs hold
 local is_holding   = false -- true while we are in 2x hold mode
 local saved_speed  = nil   -- speed captured just before going to 2x
 
-local HOLD_THRESHOLD_MS = 300  -- ms to wait before treating as a hold
+local HOLD_THRESHOLD_MS = 250  -- ms to wait before treating as a hold (snappy & natural)
 local SPEED_2X         = 2.0
 
 local function on_space(event)
-    if event.event == "down" then
-        -- Cancel any previous timer (shouldn't exist, but be safe)
+    -- Handle canceled key event (e.g. window lost focus or another key was pressed)
+    if event.canceled then
         if hold_timer then hold_timer:kill(); hold_timer = nil end
-        is_holding = false
+        if is_holding then
+            is_holding = false
+            local restore = saved_speed or 1.0
+            mp.set_property_number("speed", restore)
+            saved_speed = nil
+            mp.osd_message(("▶ Speed: %.2fx"):format(restore), 2)
+        end
+        return
+    end
+
+    -- Fallback for environments that cannot track separate down/up events
+    if event.event == "press" then
+        local paused = mp.get_property_native("pause")
+        mp.set_property("pause", not paused)
+        return
+    end
+
+    -- Ignore key repeat ticks so they never reset the timer
+    if event.event == "repeat" then return end
+
+    if event.event == "down" then
+        -- If already holding or timer is running, ignore duplicate down events
+        if is_holding or hold_timer then return end
 
         hold_timer = mp.add_timeout(HOLD_THRESHOLD_MS / 1000, function()
             hold_timer  = nil
@@ -34,13 +56,13 @@ local function on_space(event)
 
     elseif event.event == "up" then
         if hold_timer then
-            -- Timer hadn't fired yet → this was a tap → toggle pause
+            -- Timer hadn't fired yet → tap → toggle pause
             hold_timer:kill()
             hold_timer = nil
             local paused = mp.get_property_native("pause")
             mp.set_property("pause", not paused)
         elseif is_holding then
-            -- We were in hold-mode → restore speed
+            -- Hold released → restore original speed
             is_holding = false
             local restore = saved_speed or 1.0
             mp.set_property_number("speed", restore)
@@ -50,7 +72,9 @@ local function on_space(event)
     end
 end
 
-mp.add_key_binding("SPACE", "space_speed_pause", on_space, {complex = true})
+-- Use add_forced_key_binding so this wins in ALL mpv contexts
+-- (including when the OSC/uosc is hovered, menus are open, etc.)
+mp.add_forced_key_binding("SPACE", "space_speed_pause", on_space, {complex = true})
 
 
 -- =========================================================================
@@ -220,4 +244,4 @@ local function show_playlist_info()
     end)
 end
 
-mp.add_key_binding("y", "playlist_info", show_playlist_info)
+mp.add_forced_key_binding("y", "playlist_info", show_playlist_info)

@@ -110,10 +110,9 @@
   "custom/updates": {
     "format": "  {}",
     "escape": true,
-    "return-type": "json",
-    "exec": "~/.config/matrix/scripts/matrix-check-system-updates",
+    "exec": "~/.config/matrix/scripts/matrix-check-system-updates.sh",
     "interval": 1800,
-    "signal": 1,
+    "signal": 2,
     "hide-empty-text": true,
   },
   // Rofi Application Launcher

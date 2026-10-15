@@ -72,8 +72,8 @@
         "escape": true,
         "exec-on-event": true,
         "interval": 60,
-        "exec": "~/.config/hypr/scripts/hypridle.sh status",
-        "on-click": "~/.config/hypr/scripts/hypridle.sh toggle",
+        "exec": "~/.config/matrix/scripts/caffeine.sh status",
+        "on-click": "~/.config/matrix/scripts/caffeine.sh toggle",
         "on-click-right": "hyprlock"
     },
 

@@ -4,22 +4,18 @@
   "positionY": "top",
   "layer": "overlay",
   "cssPriority": "user",
-
   "control-center-width": 360,
   "control-center-height": 700,
   "control-center-margin-top": 11,
   "control-center-margin-right": 10,
   "control-center-margin-left": 0,
-
   "notification-window-width": 360,
   "notification-icon-size": 48,
   "notification-body-image-height": 100,
   "notification-body-image-width": 200,
-
   "timeout": 4,
   "timeout-low": 2,
   "timeout-critical": 6,
-
   "fit-to-screen": false,
   "keyboard-shortcuts": true,
   "image-visibility": "when-available",
@@ -28,11 +24,28 @@
   "hide-on-action": true,
   "script-fail-notify": true,
   "scripts": {},
-  "notification-visibility": {
-    "example-name": {
-      "state": "muted",
-      "urgency": "Normal",
-      "app-name": "Spotify"
+  "widgets": [
+    "title",
+    "dnd",
+    "mpris",
+    "notifications"
+  ],
+  "widget-config": {
+    "title": {
+      "text": "Notifications",
+      "clear-all-button": true,
+      "button-text": "Clear"
+    },
+    "dnd": {
+      "text": "Do Not Disturb"
+    },
+    "mpris": {
+      "autohide": true,
+      "show-album-art": "never",
+      "loop-carousel": false
+    },
+    "notifications": {
+      "vexpand": true
     }
   }
 }

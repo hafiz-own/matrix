@@ -36,7 +36,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 if [[ "${1:-}" == "stop" ]]; then
-    killall nm-applet
+    killall nm-applet 2>/dev/null || true
 elif [[ "${1:-}" == "toggle" ]]; then
     if pgrep -x "nm-applet" >/dev/null; then
         echo "Running"

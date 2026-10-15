@@ -22,7 +22,7 @@ hl.config({
             enabled   = true,
             size      = 3,
             passes    = 4,
-            new_optimizations = on,
+            new_optimizations = true,
             ignore_opacity = true,
             xray = true
         },

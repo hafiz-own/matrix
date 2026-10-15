@@ -11,6 +11,7 @@ require("functions")
 -- MONITORS
 require("monitors")
 require("conf.monitor")
+require("conf.lid")
 
 -- INPUT
 require("input")

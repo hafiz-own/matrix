@@ -7,7 +7,7 @@ hl.on("hyprland.start", function ()
         "WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE",
         "HYPRLAND_INSTANCE_SIGNATURE", "QT_QPA_PLATFORMTHEME", "QS_ICON_THEME",
         "XCURSOR_THEME", "XCURSOR_SIZE", "HYPRCURSOR_THEME", "HYPRCURSOR_SIZE",
-        "VK_DRIVER_FILES",
+        "VK_DRIVER_FILES", "__EGL_VENDOR_LIBRARY_FILENAMES",
     }, " ")
     hl.exec_cmd("sh -c 'dbus-update-activation-environment --systemd " .. env .. "; "
         .. "systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland; "

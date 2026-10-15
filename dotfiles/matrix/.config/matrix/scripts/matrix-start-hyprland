@@ -15,12 +15,18 @@ for card in /sys/class/drm/card[0-9]*; do
     [[ "$card" == *-* ]] && continue          # skip connectors (card1-eDP-1)
     if [[ "$(<"$card/device/vendor")" == "0x8086" ]]; then
         export AQ_DRM_DEVICES="/dev/dri/${card##*/}"
+        # libglvnd loads every EGL vendor by default; NVIDIA's EGL opens the
+        # dGPU (/dev/nvidia0, its render node) even for a compositor that
+        # never renders on it. Mesa only for Hyprland and everything it
+        # starts; use-gpu puts NVIDIA's EGL back for the app it launches.
+        export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
         break
     fi
 done
 
 if [[ "${1:-}" == "--dry-run" ]]; then
     echo "AQ_DRM_DEVICES=${AQ_DRM_DEVICES:-<unset: Intel card not found, would start normally>}"
+    echo "__EGL_VENDOR_LIBRARY_FILENAMES=${__EGL_VENDOR_LIBRARY_FILENAMES:-<unset>}"
     exit 0
 fi
 

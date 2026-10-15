@@ -3,8 +3,9 @@
 #
 # The session only exposes the Intel Vulkan driver (VK_DRIVER_FILES in
 # hypr/conf/environments/default.lua) so idle apps never wake the dGPU.
-# This wrapper flips that for the launched command: NVIDIA Vulkan driver,
-# NVIDIA GLX/EGL via PRIME offload.
+# and Hyprland only exposes Mesa EGL (matrix-start-hyprland). This wrapper
+# flips both for the launched command: NVIDIA Vulkan driver, NVIDIA
+# GLX/EGL via PRIME offload.
 #
 # Usage:   use-gpu <command> [args...]          (zsh alias)
 #          ~/.config/matrix/scripts/matrix-use-gpu <command>   (anywhere)
@@ -23,6 +24,7 @@ if [[ ! -d /sys/module/nvidia ]]; then
 fi
 
 export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/nvidia_icd.json
+export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json:/usr/share/glvnd/egl_vendor.d/50_mesa.json
 unset MESA_VK_DEVICE_SELECT
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __VK_LAYER_NV_optimus=NVIDIA_only

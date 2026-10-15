@@ -10,6 +10,9 @@ nv_card=$(basename "$(ls -d "$dgpu"/drm/card[0-9]* | head -1)")
 
 echo "Hyprland AQ_DRM_DEVICES: $(tr '\0' '\n' < /proc/$(pgrep -x Hyprland | head -1)/environ | grep '^AQ_DRM_DEVICES=' || echo 'not set (started without hypr?)')"
 
+echo "Hyprland __EGL_VENDOR_LIBRARY_FILENAMES: $(tr '\0' '\n' < /proc/$(pgrep -x Hyprland | head -1)/environ | grep '^__EGL_VENDOR_LIBRARY_FILENAMES=' | cut -d= -f2- || echo 'not set')"
+echo "dGPU power/control: $(cat "$dgpu/power/control")  (want: auto; 'on' forbids runtime suspend -> run fix-nvidia-pm.sh)"
+
 echo "Processes holding the NVIDIA GPU (/dev/nvidia*, /dev/dri/$nv_card):"
 holders=0
 for p in /proc/[0-9]*; do

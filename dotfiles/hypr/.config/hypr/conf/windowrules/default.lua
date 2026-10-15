@@ -41,3 +41,12 @@ hl.window_rule({
     workspace = "7 silent",
     fullscreen = true
 })
+
+-- Keep the screen awake while anything is fullscreen (videos, games,
+-- presentations), even if the app itself doesn't send an idle inhibitor.
+hl.window_rule({
+    name = "idle-inhibit-fullscreen",
+    match = { class = ".*" },
+    idle_inhibit = "fullscreen",
+})
+

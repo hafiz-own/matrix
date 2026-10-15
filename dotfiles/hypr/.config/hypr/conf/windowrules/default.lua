@@ -50,3 +50,22 @@ hl.window_rule({
     idle_inhibit = "fullscreen",
 })
 
+-- Small utility windows float, centered
+hl.window_rule({
+    name = "float-utilities",
+    match = { class = "^(org\\.pulseaudio\\.pavucontrol|pavucontrol|\\.?blueman-manager(-wrapped)?|nm-connection-editor|xdg-desktop-portal-gtk|polkit-gnome-authentication-agent-1)$" },
+    float = true,
+    center = true,
+})
+
+-- Picture-in-Picture (Firefox: "Picture-in-Picture", Chromium/Brave:
+-- "Picture in picture"): float, pinned, bottom-right, aspect kept
+hl.window_rule({
+    name = "pip",
+    match = { title = "^(Picture-in-Picture|Picture in picture)$" },
+    float = true,
+    pin = true,
+    keep_aspect_ratio = true,
+    size = "(monitor_w*0.25) (monitor_w*0.25*9/16)",
+    move = "(monitor_w-monitor_w*0.25-20) (monitor_h-monitor_w*0.25*9/16-20)",
+})

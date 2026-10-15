@@ -121,13 +121,15 @@
     "format": "Apps",
     // END APPS LABEL
     "on-click": "~/.config/walker/launch.sh",
-    "tooltip-format": "Open the application launcher"
+    "on-click-right": "~/.config/hypr/scripts/keybindings.sh",
+    "tooltip-format": "Left: Open the application launcher\nRight: Show all keybindings"
   },
   // Application Launcher (icon)
   "custom/appmenuicon": {
     "format": "",
     "on-click": "~/.config/walker/launch.sh",
-    "tooltip-format": "Open the application launcher"
+    "on-click-right": "~/.config/hypr/scripts/keybindings.sh",
+    "tooltip-format": "Left: Open the application launcher\nRight: Show all keybindings"
   },
   // SwayNC
   "custom/notification": {

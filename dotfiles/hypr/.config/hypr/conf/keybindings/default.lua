@@ -62,6 +62,7 @@ hl.bind(mainMod .. " + ALT + down", hl.dsp.window.swap({ direction = "d" }), { d
 
 -- Actions
 hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("hyprctl reload"), { description = "Reload Hyprland configuration" })
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("~/.config/hypr/scripts/keybindings.sh"), { description = "Show keybindings" })
 hl.bind(mainMod .. " + SHIFT + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-animations.sh"), { description = "Toggle animations" })
 hl.bind("PRINT", hl.dsp.exec_cmd("~/.config/matrix/scripts/matrix-capture-ui.sh"), { description = "Matrix Capture (Screenshot/OCR/Record)" })
 hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/.config/walker/launch.sh"), { description = "Open application launcher" })
@@ -102,7 +103,7 @@ hl.bind("SUPER + F7", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh volume
 hl.bind("SUPER + F6", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh volume -5%"), { locked = true, description = "MPD volume down" })
 
 -- Lyrics toggle
-hl.bind("SUPER + F8", hl.dsp.exec_cmd("~/.config/hypr/scripts/lyrics_toggle.sh"), { locked = true })
+hl.bind("SUPER + F8", hl.dsp.exec_cmd("~/.config/hypr/scripts/lyrics_toggle.sh"), { locked = true, description = "Toggle synced lyrics" })
 
 -- Persist lyrics state on startup
 --hl.on("hyprland.start", function()

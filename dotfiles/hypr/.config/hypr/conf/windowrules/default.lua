@@ -44,9 +44,11 @@ hl.window_rule({
 
 -- Keep the screen awake while anything is fullscreen (videos, games,
 -- presentations), even if the app itself doesn't send an idle inhibitor.
+-- Except the idle screensaver itself: it is fullscreen by design and would
+-- otherwise stop hypridle from ever locking / turning the screen off.
 hl.window_rule({
     name = "idle-inhibit-fullscreen",
-    match = { class = ".*" },
+    match = { class = "negative:matrix-screensaver" },
     idle_inhibit = "fullscreen",
 })
 

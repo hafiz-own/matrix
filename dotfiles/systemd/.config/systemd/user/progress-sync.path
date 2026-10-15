@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch /data/Study/Current/progress.xlsx for changes
+
+[Path]
+PathModified=/data/Study/Current/progress.xlsx
+Unit=progress-sync.service
+
+[Install]
+WantedBy=default.target

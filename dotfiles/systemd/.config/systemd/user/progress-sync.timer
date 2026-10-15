@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic sync check for progress.ods
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=15m
+Unit=progress-sync.service
+
+[Install]
+WantedBy=timers.target

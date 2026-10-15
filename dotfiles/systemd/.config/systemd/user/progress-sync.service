@@ -1,0 +1,7 @@
+[Unit]
+Description=Two-Way Sync progress.xlsx with Google Drive
+Documentation=man:rclone(1)
+
+[Service]
+Type=oneshot
+ExecStart=/home/own/.local/bin/sync-progress.sh

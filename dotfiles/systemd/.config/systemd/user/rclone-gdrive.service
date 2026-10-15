@@ -1,0 +1,37 @@
+[Unit]
+Description=Rclone Google Drive Mount
+After=default.target
+# Give up after 5 failed starts in 10 min (e.g. expired token) instead of
+# retrying every 5 s forever; retries back off from 30 s up to 10 min.
+StartLimitIntervalSec=10min
+StartLimitBurst=5
+
+[Service]
+Type=notify
+ExecStartPre=-/usr/bin/fusermount3 -uz /home/gdrive
+ExecStart=/usr/bin/rclone mount gdrive: /home/gdrive \
+  --vfs-cache-mode full \
+  --vfs-cache-max-size 20G \
+  --vfs-cache-max-age 24h \
+  --vfs-write-back 30s \
+  --buffer-size 32M \
+  --vfs-read-chunk-size 128M \
+  --vfs-read-chunk-size-limit 2G \
+  --dir-cache-time 1000h \
+  --poll-interval 1m \
+  --attr-timeout 1s \
+  --vfs-fast-fingerprint \
+  --drive-chunk-size 32M \
+  --tpslimit 10 \
+  --tpslimit-burst 20 \
+  --transfers 4 \
+  --checkers 8 \
+  --cache-dir %h/.cache/rclone/gdrive
+ExecStop=/usr/bin/fusermount3 -uz /home/gdrive
+Restart=on-failure
+RestartSec=30
+RestartSteps=5
+RestartMaxDelaySec=10min
+
+[Install]
+WantedBy=default.target

@@ -2,12 +2,11 @@ hl.on("hyprland.start", function ()
     local HOME = os.getenv("HOME")
 
 
-    -- Export variables to systemd
-    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-
-    -- Restart portals so they catch the environment
-    hl.exec_cmd("systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland")
-    hl.exec_cmd("systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal")
+    -- Export variables to systemd, then restart portals so they catch the
+    -- environment. One shell so the steps run in order (exec_cmd is async).
+    hl.exec_cmd("sh -c 'dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP; "
+        .. "systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland; "
+        .. "systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal'")
 
 
     -- Load cursor
@@ -49,6 +48,4 @@ hl.on("hyprland.start", function ()
 	-- start voxtype daemon
 	hl.exec_cmd("voxtype daemon")
 	
-	-- Load GTK settings
-	hl.exec_cmd("~/.config/hypr/scripts/gtk.sh")
 end)

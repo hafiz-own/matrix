@@ -1,5 +1,3 @@
-local utils = require 'mp.utils'
-
 -- =========================================================================
 -- 1. Hold SPACE → 2.0x speed; Tap SPACE → Toggle Pause
 -- =========================================================================
@@ -34,8 +32,7 @@ local function on_space(event)
 
     -- Fallback for environments that cannot track separate down/up events
     if event.event == "press" then
-        local paused = mp.get_property_native("pause")
-        mp.set_property("pause", not paused)
+        mp.command("cycle pause")
         return
     end
 
@@ -59,8 +56,7 @@ local function on_space(event)
             -- Timer hadn't fired yet → tap → toggle pause
             hold_timer:kill()
             hold_timer = nil
-            local paused = mp.get_property_native("pause")
-            mp.set_property("pause", not paused)
+            mp.command("cycle pause")
         elseif is_holding then
             -- Hold released → restore original speed
             is_holding = false
@@ -87,9 +83,18 @@ mp.add_forced_key_binding("SPACE", "space_speed_pause", on_space, {complex = tru
 --   Remaining: HH:MM:SS  (at 1x)
 --   At Xx:     HH:MM:SS  (at current speed, if not 1x)
 --   Total playlist: HH:MM:SS  (at 1x)
+--
+-- Durations of other playlist items come from ffprobe, run ASYNCHRONOUSLY
+-- one at a time and cached for the session. The overlay appears at once and
+-- fills in as probes finish; nothing blocks mpv's script thread (the old
+-- synchronous loop froze every binding of this script, SPACE included,
+-- until all items were probed). Files that were played are cached from
+-- mpv's own duration, so they are never probed.
 -- =========================================================================
 
--- ── helpers ──────────────────────────────────────────────────────────────
+local durations = {}   -- filename -> seconds | false (unknown, don't retry)
+local probing   = nil  -- filename currently being probed
+local queue     = {}   -- filenames waiting to be probed
 
 local function hms(seconds)
     if not seconds or seconds < 0 then return "??:??:??" end
@@ -105,32 +110,16 @@ local function hms(seconds)
     end
 end
 
--- Get duration of a local file via ffprobe.
--- Returns number of seconds, or nil on failure.
-local function probe_duration(filename)
-    if not filename then return nil end
-    -- Skip URLs / streams – ffprobe would hang or fail
-    if filename:match("^https?://") or filename:match("^ytdl://")
-       or filename:match("^magnet:") or filename:match("^rtmp")
-       or filename:match("^rtsp") then
-        return nil
-    end
-
-    local res = utils.subprocess({
-        args = {
-            "ffprobe", "-v", "quiet",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            filename
-        },
-        cancellable = false,
-        max_size     = 256,
-    })
-    if res.status == 0 and res.stdout then
-        return tonumber(res.stdout:match("[%d%.]+"))
-    end
-    return nil
+local function is_remote(filename)
+    return filename:find("^%a[%w+.-]*://") ~= nil or filename:match("^magnet:") ~= nil
 end
+
+-- Cache the duration of whatever mpv plays (free: no probe needed later)
+mp.register_event("file-loaded", function()
+    local path = mp.get_property("path")
+    local dur  = mp.get_property_number("duration")
+    if path and dur then durations[path] = dur end
+end)
 
 -- ── overlay state ─────────────────────────────────────────────────────────
 
@@ -140,71 +129,43 @@ local ov_timer = nil   -- auto-hide timer
 local function dismiss_overlay()
     if ov_timer then ov_timer:kill(); ov_timer = nil end
     if ov then ov:remove(); ov = nil end
+    queue = {}         -- stop probing once nobody is looking (cache is kept)
 end
 
--- ── main logic ────────────────────────────────────────────────────────────
+local function render()
+    if not ov then return end
+    local playlist    = mp.get_property_native("playlist") or {}
+    local current_pos = mp.get_property_number("playlist-pos", 0)   -- 0-indexed
+    local speed       = mp.get_property_number("speed", 1.0)
+    local duration    = mp.get_property_number("duration")
+    local time_pos    = mp.get_property_number("time-pos")
+    local current_1idx = current_pos + 1
 
-local function show_playlist_info()
-    -- Toggle off if already showing
-    if ov then
-        dismiss_overlay()
-        return
-    end
+    local remaining_secs, total_secs = 0, 0
+    local unknown_count, pending_count = 0, 0
 
-    local playlist    = mp.get_property_native("playlist")
-    local current_pos = mp.get_property_native("playlist-pos")   -- 0-indexed
-    local speed       = mp.get_property_native("speed") or 1.0
-    local duration    = mp.get_property_native("duration")
-    local time_pos    = mp.get_property_native("time-pos")
-
-    -- Guard: need a playlist
-    if not playlist or #playlist == 0 then
-        mp.osd_message("No playlist active.", 3)
-        return
-    end
-
-    if not current_pos then current_pos = 0 end
-    local current_1idx = current_pos + 1   -- human-readable 1-indexed
-    local total_items  = #playlist
-
-    -- ── accumulate remaining time ─────────────────────────────────────────
-    local remaining_secs = 0
-    local total_secs     = 0
-    local unknown_count  = 0
-
-    -- Current video: time left in it
-    if duration and time_pos then
-        local cur_remaining = math.max(0, duration - time_pos)
-        remaining_secs      = remaining_secs + cur_remaining
-        total_secs          = total_secs     + duration
-    else
-        unknown_count = unknown_count + 1
-    end
-
-    -- Preceding items: full duration (for total only)
-    for i = 1, current_pos do
-        local item = playlist[i]
-        local dur  = probe_duration(item.filename)
+    for i, item in ipairs(playlist) do
+        local dur
+        if i == current_1idx then
+            dur = duration
+            if dur and time_pos then
+                remaining_secs = remaining_secs + math.max(0, dur - time_pos)
+            end
+        else
+            dur = durations[item.filename]
+            if dur and i > current_1idx then
+                remaining_secs = remaining_secs + dur
+            end
+        end
         if dur then
             total_secs = total_secs + dur
+        elseif durations[item.filename] == nil and i ~= current_1idx then
+            pending_count = pending_count + 1
         else
             unknown_count = unknown_count + 1
         end
     end
 
-    -- Subsequent items: full duration (remaining + total)
-    for i = current_1idx + 1, total_items do
-        local item = playlist[i]
-        local dur  = probe_duration(item.filename)
-        if dur then
-            remaining_secs = remaining_secs + dur
-            total_secs     = total_secs     + dur
-        else
-            unknown_count  = unknown_count  + 1
-        end
-    end
-
-    -- ── build ASS overlay lines ───────────────────────────────────────────
     -- \an9 = top-right anchor, \N = hard newline in ASS
     local W  = "{\\an9\\bord1.5\\shad1\\c&HFFFFFF&\\3c&H000000&\\fs22\\b1}"
     local N  = "{\\an9\\bord1.5\\shad1\\c&HFFFFFF&\\3c&H000000&\\fs20}"
@@ -214,28 +175,82 @@ local function show_playlist_info()
     local HI = "{\\an9\\bord1\\shad0\\c&H8888FF&\\3c&H000000&\\fs16}"
 
     local parts = {}
-
-    parts[#parts+1] = W .. string.format("Video %d of %d", current_1idx, total_items)
+    parts[#parts+1] = W .. string.format("Video %d of %d", current_1idx, #playlist)
     parts[#parts+1] = N .. string.format("Remaining (1x):   %s", hms(remaining_secs))
-
     if math.abs(speed - 1.0) > 0.01 then
         parts[#parts+1] = G .. string.format("Remaining (%.2fx): %s", speed, hms(remaining_secs / speed))
     end
-
     parts[#parts+1] = S .. string.format("Total playlist:   %s", hms(total_secs))
-
     if math.abs(speed - 1.0) > 0.01 then
         parts[#parts+1] = GS .. string.format("Total (%.2fx):     %s", speed, hms(total_secs / speed))
     end
-
+    if pending_count > 0 then
+        parts[#parts+1] = HI .. string.format("(measuring %d item(s)…)", pending_count)
+    end
     if unknown_count > 0 then
         parts[#parts+1] = HI .. string.format("(%d item(s) duration unknown)", unknown_count)
     end
 
-    -- ── render ────────────────────────────────────────────────────────────
-    ov      = mp.create_osd_overlay("ass-events")
     ov.data = table.concat(parts, "\\N")
     ov:update()
+end
+
+-- Probe the next queued file; re-render when it finishes. One at a time.
+local function probe_next()
+    if probing then return end
+    local filename = table.remove(queue, 1)
+    while filename and durations[filename] ~= nil do
+        filename = table.remove(queue, 1)
+    end
+    if not filename then return end
+
+    probing = filename
+    mp.command_native_async({
+        name = "subprocess",
+        args = { "ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1:nokey=1", filename },
+        capture_stdout = true,
+        playback_only  = false,
+    }, function(success, res)
+        local dur = success and res and res.status == 0
+                    and tonumber((res.stdout or ""):match("[%d%.]+"))
+        durations[filename] = dur or false
+        probing = nil
+        render()
+        probe_next()
+    end)
+end
+
+local function show_playlist_info()
+    -- Toggle off if already showing
+    if ov then
+        dismiss_overlay()
+        return
+    end
+
+    local playlist = mp.get_property_native("playlist")
+    if not playlist or #playlist == 0 then
+        mp.osd_message("No playlist active.", 3)
+        return
+    end
+
+    ov = mp.create_osd_overlay("ass-events")
+    render()
+
+    -- Queue local files whose duration we don't know yet (URLs are skipped)
+    queue = {}
+    for _, item in ipairs(playlist) do
+        local f = item.filename
+        if durations[f] == nil then
+            if is_remote(f) then
+                durations[f] = false
+            else
+                queue[#queue+1] = f
+            end
+        end
+    end
+    render()
+    probe_next()
 
     -- auto-dismiss after 7 seconds
     ov_timer = mp.add_timeout(7, function()

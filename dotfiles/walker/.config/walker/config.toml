@@ -85,7 +85,7 @@ prefix = "@"
 provider = "websearch"
 
 [[providers.prefixes]]
-prefix = "r"
+prefix = "+"   # "+" = add a reminder (was "r", which hijacked every query starting with r)
 provider = "reminder"
 
 [providers.clipboard]

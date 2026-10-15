@@ -84,18 +84,6 @@ window#waybar {
  * Tooltips
  * ----------------------------------------------------- */
 
-tooltip {
-    border-radius: 10px;
-    background-color: @backgroundlight;
-    opacity: 0.9;
-    padding: 8px;
-    margin: 0px;
-}
-
-tooltip label {
-    color: @textcolor2;
-}
-
 /* -----------------------------------------------------
  * Window
  * ----------------------------------------------------- */
@@ -154,54 +142,11 @@ window#waybar.empty #window {
  * Custom Quicklinks
  * ----------------------------------------------------- */
 
-#custom-brave,
-#custom-browser,
-#custom-keybindings,
-#custom-outlook,
-#custom-filemanager,
-#custom-teams,
-#custom-chatgpt,
-#custom-calculator,
-#custom-windowsvm,
-#custom-cliphist,
-#custom-wallpaper,
-#custom-settings,
-#custom-wallpaper,
-#custom-system,
-#custom-hyprshade,
-#custom-hypridle,
 #custom-tools,
-#custom-quicklink_chromium,
-#custom-quicklink_edge,
-#custom-quicklink_firefox,
-#custom-quicklink_browser,
-#custom-quicklink_filemanager,
-#custom-quicklink_email,
-#custom-quicklink_thunderbird,
-#custom-quicklink_calculator,
-#custom-quicklink1,
-#custom-quicklink2,
-#custom-quicklink3,
-#custom-quicklink4,
-#custom-quicklink5,
-#custom-quicklink6,
-#custom-quicklink7,
-#custom-quicklink8,
-#custom-quicklink9,
-#custom-quicklink10,
-#custom-waybarthemes {
+#custom-hypridle {
     margin-right: 8px;
     font-weight: bold;
     color: @iconcolor;
-}
-
-#custom-tools,
-#custom-hyprshade {
-    margin-right: 8px;
-}
-
-#custom-hypridle {
-    margin-right: 8px;
 }
 
 #custom-hypridle.active {
@@ -210,41 +155,6 @@ window#waybar.empty #window {
 
 #custom-hypridle.notactive {
     color: #dc2f2f;
-}
-
-#custom-settings,
-#custom-browser,
-#custom-wallpaper {
-    margin-right: 8px;
-}
-
-#custom-chatgpt {
-    margin-right: 6px;
-    background-image: url("../../assets/ai-icon-20.png");
-    background-repeat: no-repeat;
-    background-position: center;
-    padding-right: 18px;
-}
-
-#custom-waybarthemes, #custom-system {
-    margin-right: 8px;
-}
-
-#custom-ml4w-welcome {
-    margin-right: 8px;
-    background-image: url("../../assets/ml4w-icon.svg");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: contain;
-    padding-right: 16px;
-}
-
-#custom-ml4w-hyprland-settings {
-    margin-right: 8px;
-    background-image: url("../../assets/hyprland-icon-20.png");
-    background-repeat: no-repeat;
-    background-position: center;
-    padding-right: 12px;
 }
 
 /* -----------------------------------------------------
@@ -312,16 +222,6 @@ window#waybar.empty #window {
 
 #custom-updates.red {
     color: #dc2f2f;
-}
-
-/* -----------------------------------------------------
- * Custom Youtube
- * ----------------------------------------------------- */
-
-#custom-youtube {
-    background-color: @backgroundlight;
-    color: @textcolor2;
-    margin: 0px 8px 0px 0px;
 }
 
 /* -----------------------------------------------------
@@ -468,72 +368,20 @@ window#waybar.empty #window {
 
 
 #custom-lyrics {
-    font-family: "FiraCode Nerd Font", "Jameel Noori Kasheeda", "Ubuntu Nerd Font", sans-serif;
-    font-style: italic;
-    font-weight: bold;
-    font-size: 13px;
-    color: alpha(@text, 0.7);
-    background-color: alpha(@surface0, 0.5);
-    border-radius: 12px;
-    padding: 0px 14px;
-    margin: 0px 6px;
-    min-width: 0;
-    transition: all 300ms ease;
-}
-
-#custom-lyrics.stopped {
-    background-color: transparent;
-    color: transparent;
-    padding: 0;
-    margin: 0;
-}
-
-#custom-lyrics.playing {
-    color: alpha(@text, 0.8);
-    background-color: alpha(@surface1, 0.6);
-    min-width: 400px;
-}
-
-tooltip {
-    background: alpha(@base, 0.85);
-    border: 1px solid alpha(@text, 0.1);
-    border-radius: 8px;
-    font-size: 13px;
-    color: @text;
-}
-
-#custom-lyrics {
-    font-style: italic;
-    font-size: 13px;
     font-family: "Jameel Noori Kasheeda", "Fira Sans Semibold", sans-serif;
-    color: alpha(@text, 0.0);
+    font-style: italic;
+    font-size: 13px;
+    color: transparent;
     min-width: 0;
     padding: 0;
     margin: 0;
-    transition: color 300ms ease,
-                min-width 400ms ease,
-                padding 300ms ease;
-}
-
-#custom-lyrics.stopped {
-    color: alpha(@text, 0.0);
-    min-width: 0;
-    padding: 0;
-    margin: 0;
+    transition: color 300ms ease, padding 300ms ease;
 }
 
 #custom-lyrics.playing {
-    color: alpha(@text, 0.6);
+    color: rgba(255, 255, 255, 0.6);
     padding: 0 16px;
     margin-left: 80px;
-}
-
-tooltip {
-    background: alpha(@base, 0.85);
-    border: 1px solid alpha(@text, 0.1);
-    border-radius: 8px;
-    font-size: 13px;
-    color: @text;
 }
 
 @keyframes blink-record {

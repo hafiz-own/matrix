@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# DESC: After logging in with `hypr`: check that the NVIDIA dGPU is left
+#       alone at idle and still works on demand through use-gpu.
+dgpu=""
+for d in /sys/bus/pci/devices/*; do
+    [[ "$(<"$d/vendor")" == "0x10de" && "$(<"$d/class")" == 0x03* ]] && dgpu=$d && break
+done
+[[ -n "$dgpu" ]] || { echo "No NVIDIA GPU found."; exit 1; }
+nv_card=$(basename "$(ls -d "$dgpu"/drm/card[0-9]* | head -1)")
+
+echo "Hyprland AQ_DRM_DEVICES: $(tr '\0' '\n' < /proc/$(pgrep -x Hyprland | head -1)/environ | grep '^AQ_DRM_DEVICES=' || echo 'not set (started without hypr?)')"
+
+echo "Processes holding the NVIDIA GPU (/dev/nvidia*, /dev/dri/$nv_card):"
+holders=0
+for p in /proc/[0-9]*; do
+    if ls -l "$p/fd" 2>/dev/null | grep -qE "/dev/nvidia|/dev/dri/$nv_card\$"; then
+        echo "  $(basename "$p") $(tr '\0' ' ' < "$p/cmdline" | cut -c1-80)"
+        holders=$((holders + 1))
+    fi
+done
+(( holders == 0 )) && echo "  none"
+
+echo -n "dGPU power state after 15s idle: "
+sleep 15
+cat "$dgpu/power/runtime_status"     # want: suspended
+
+echo "On-demand check (vkcube on the dGPU for 5s, watch for the window):"
+VK_LINE=$(~/.config/matrix/scripts/matrix-use-gpu vulkaninfo --summary 2>/dev/null | grep -m1 deviceName)
+echo "  use-gpu vulkaninfo:${VK_LINE#*=}"
+timeout 5 ~/.config/matrix/scripts/matrix-use-gpu vkcube 2>&1 | grep -m1 -i 'selected\|gpu' || true
+echo -n "  dGPU power state while/after vkcube: "; cat "$dgpu/power/runtime_status"

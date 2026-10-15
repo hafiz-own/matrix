@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# DESC: Start Hyprland on the Intel iGPU only (zsh alias: hypr).
+#
+# Every display output on this laptop is wired to the Intel GPU, so
+# Hyprland does not need the NVIDIA dGPU. Without this, Aquamarine opens
+# every DRM card at startup and the dGPU can never runtime-suspend.
+# Apps can still use the dGPU on demand with `use-gpu <command>`.
+#
+# Card numbers (card0/card1) can swap between boots, so the Intel card is
+# found by PCI vendor id each time. If it is not found, Hyprland starts
+# normally. Rollback: run plain `start-hyprland` instead.
+# --dry-run: print the chosen card and exit (does not start Hyprland).
+
+for card in /sys/class/drm/card[0-9]*; do
+    [[ "$card" == *-* ]] && continue          # skip connectors (card1-eDP-1)
+    if [[ "$(<"$card/device/vendor")" == "0x8086" ]]; then
+        export AQ_DRM_DEVICES="/dev/dri/${card##*/}"
+        break
+    fi
+done
+
+if [[ "${1:-}" == "--dry-run" ]]; then
+    echo "AQ_DRM_DEVICES=${AQ_DRM_DEVICES:-<unset: Intel card not found, would start normally>}"
+    exit 0
+fi
+
+exec start-hyprland "$@"

@@ -42,14 +42,10 @@ _checkCommandExists() {
     command -v "$1" &> /dev/null
 }
 
-script_name=$(basename "$0")
-
-# Count the instances
-instance_count=$(ps aux | grep -F "$script_name" | grep -v grep | grep -v $$ | wc -l)
-
-if [ $instance_count -gt 1 ]; then
-    sleep $instance_count
-fi
+# One check at a time (waybar can fire it on start and on signal at once):
+# wait for a running instance instead of counting processes with ps|grep.
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/matrix-check-system-updates.lock"
+flock 9
 
 # ----------------------------------------------------- 
 # Check for updates
@@ -81,20 +77,21 @@ if _checkCommandExists "pacman"; then
     if _checkCommandExists "paru"; then
         paru_installed="true"
     fi
-    if [[ $yay_installed == "true" ]] && [[ $paru_installed == "false" ]]; then
+    # Prefer yay when both are installed (aur_helper was left unset then)
+    if [[ $yay_installed == "true" ]]; then
         aur_helper="yay"
-    elif [[ $yay_installed == "false" ]] && [[ $paru_installed == "true" ]]; then
+    elif [[ $paru_installed == "true" ]]; then
         aur_helper="paru"
     fi
     if [[ $yay_installed == "true" ]] || [[ $paru_installed == "true" ]]; then
-        aur_output=$($aur_helper -Qum 2>/dev/null)
+        aur_output=$($aur_helper -Qum 2>/dev/null || true)   # exits 1 when nothing to update
         if [ -n "$aur_output" ]; then
             updates_aur=$(echo "$aur_output" | wc -l)
         else
             updates_aur=0
         fi
     fi
-    pacman_output=$(checkupdates 2>/dev/null)
+    pacman_output=$(checkupdates 2>/dev/null || true)       # exits 2 when nothing to update
     if [ -n "$pacman_output" ]; then
         updates_pacman=$(echo "$pacman_output" | wc -l)
     else
@@ -105,7 +102,7 @@ if _checkCommandExists "pacman"; then
 # Fedora
 elif _checkCommandExists "dnf"; then
     os_type="fedora"
-    updates=$(dnf check-update -q | grep -c ^[a-z0-9])
+    updates=$(dnf check-update -q | grep -c "^[a-z0-9]" || true)
 # Others
 else
     updates=0

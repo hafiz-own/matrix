@@ -148,7 +148,9 @@ info "Stowing all dotfile packages..."
 cd "$DOTFILES_DIR"
 for pkg in */; do
     pkg="${pkg%/}"
-    stow --target="$HOME" "$pkg" 2>/dev/null && echo "  ✔ $pkg" || warn "  Conflict in $pkg — skipping (run manually: stow --adopt $pkg)"
+    # systemd ignores drop-in dirs that are symlinks: never fold that package
+    fold=(); [ "$pkg" = systemd ] && fold=(--no-folding)
+    stow "${fold[@]}" --target="$HOME" "$pkg" 2>/dev/null && echo "  ✔ $pkg" || warn "  Conflict in $pkg — skipping (run manually: stow --adopt $pkg)"
 done
 success "Dotfiles deployed. ~/.config entries are now symlinked into ~/.matrix/dotfiles/"
 
@@ -169,6 +171,17 @@ done
 systemctl --user enable --now pipewire pipewire-pulse wireplumber 2>/dev/null && \
     success "Enabled: pipewire + wireplumber (user)" || \
     warn "Could not enable pipewire user services (will auto-start on next login)"
+
+# Session daemons run as user units under hyprland-session.target (started
+# from hypr/conf/autostart.lua). voxtype's unit comes from install-extras.
+systemctl --user daemon-reload 2>/dev/null
+USER_UNITS=(hypridle swaync waybar elephant walker voxtype)
+for unit in "${USER_UNITS[@]}"; do
+    if systemctl --user cat "$unit.service" &>/dev/null; then
+        systemctl --user enable "$unit.service" &>/dev/null && \
+            success "Enabled: $unit (user)" || warn "Could not enable: $unit (user)"
+    fi
+done
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""

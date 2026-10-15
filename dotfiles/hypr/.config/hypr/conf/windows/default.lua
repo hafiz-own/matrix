@@ -5,7 +5,7 @@ hl.config({
         border_size = 2,
         col = {
             active_border   = { colors = {"#FF0040", "#B600FF"}, angle = 0 },
-            inactive_border = on_primary,
+            inactive_border = "rgba(55200cff)",
         },
         resize_on_border = true,
         allow_tearing = false,

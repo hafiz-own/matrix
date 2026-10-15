@@ -40,7 +40,6 @@ hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.exec_cmd("hyprctl activewindow -j | jq
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), { description = "Toggle Fullscreen" })
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }), { description = "Toggle Maximize Window" })
 hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle Floating" })
-hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/matrix/scripts/matrix-toggle-allfloat"), { description = "Toggle floating for all windows of workspace" })
 hl.bind(mainMod .. " + ALT + T", function() hl.dispatch(hl.dsp.window.float({ action = "toggle" })); hl.dispatch(hl.dsp.window.pin()) end, { description = "Toggle floating + pinned" })
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split" })
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }), { description = "Move focus left" })
@@ -72,7 +71,7 @@ hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("~/.config/matrix/scripts/matr
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("~/.config/matrix/scripts/matrix-cliphist"), { description = "Open clipboard manager" })
 hl.bind(mainMod .. " + ALT + G", hl.dsp.exec_cmd("~/.config/hypr/scripts/gamemode.sh"), { description = "Toggle game mode" })
 hl.bind(mainMod .. " + CTRL + L", hl.dsp.exec_cmd("~/.config/matrix/scripts/matrix-power -l"), { description = "Lock Screen" })
-hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd("~/.config/matrix/themes/themes.sh"), { description = "Open Select Window Menu" })
+hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd("~/.config/waybar/themeswitcher.sh"), { description = "Switch Waybar theme" })
 
 -- Example special workspace (scratchpad)
 hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"), { description = "Toggle special workspace magic" })

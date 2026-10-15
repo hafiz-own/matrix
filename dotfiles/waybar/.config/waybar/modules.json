@@ -115,21 +115,19 @@
     "signal": 2,
     "hide-empty-text": true,
   },
-  // Rofi Application Launcher
+  // Application Launcher
   "custom/appmenu": {
     // START APPS LABEL
     "format": "Apps",
     // END APPS LABEL
-    "on-click": "~/.config/hypr/scripts/launcher.sh",
-    "on-click-right": "~/.config/hypr/scripts/keybindings.sh",
-    "tooltip-format": "Left: Open the application launcher\nRight: Show all keybindings"
+    "on-click": "~/.config/walker/launch.sh",
+    "tooltip-format": "Open the application launcher"
   },
-  // Rofi Application Launcher
+  // Application Launcher (icon)
   "custom/appmenuicon": {
     "format": "",
-    "on-click": "sleep 0.2;rofi -show drun -replace",
-    "on-click-right": "~/.config/hypr/scripts/keybindings.sh",
-    "tooltip-format": "Left: Open the application launcher\nRight: Show all keybindings"
+    "on-click": "~/.config/walker/launch.sh",
+    "tooltip-format": "Open the application launcher"
   },
   // SwayNC
   "custom/notification": {
@@ -151,14 +149,6 @@
     "on-click": "swaync-client -t -sw",
     "on-click-right": "swaync-client -d -sw",
     "escape": true
-  },
-  // Hyprsunset
-  "custom/hyprshade": {
-    "format": "",
-    "tooltip-format": "Toggle Screen Shader",
-    "on-click": "sleep 0.5; ~/.config/matrix/scripts/matrix-toggle-hyprsunset",
-    "on-scroll-up": "true",
-    "on-scroll-down": "true"
   },
   // Hypridle inhibitor
   "custom/hypridle": {
@@ -228,7 +218,6 @@
       "transition-left-to-right": false
     },
     "modules": [
-      "custom/system",
       "disk",
       "cpu",
       "memory",
@@ -245,32 +234,8 @@
     },
     "modules": [
       "custom/tools",
-      "custom/cliphist",
       "custom/hypridle",
-      "custom/hyprshade",
       "power-profiles-daemon"
-    ]
-  },
-  // Group Links
-  "group/links": {
-    "orientation": "horizontal",
-    "modules": [
-      "custom/chatgpt",
-      "custom/empty"
-    ]
-  },
-  // Group Settings
-  "group/settings": {
-    "orientation": "inherit",
-    "drawer": {
-      "transition-duration": 300,
-      "children-class": "not-memory",
-      "transition-left-to-right": true
-    },
-    "modules": [
-      "custom/settings",
-      "custom/waybarthemes",
-      "custom/wallpaper"
     ]
   },
   // Network

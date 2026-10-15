@@ -39,23 +39,5 @@ if [[ "\${1:-}" == "-h" || "\${1:-}" == "--help" ]]; then
     exit 0
 fi
 
-launcher=$(cat $HOME/.config/matrix/settings/launcher)
-if [ "$launcher" == "walker" ]; then
-    $HOME/.config/walker/launch.sh -m clipboard -N -H
-else
-    case $1 in
-        d)
-            selected=$(cliphist list | rofi -dmenu -replace -config ~/.config/rofi/config-cliphist.rasi)
-            [ -z "$selected" ] && exit 0
-            echo "$selected" | cliphist delete
-        ;;
-        w)
-            cliphist wipe
-        ;;
-        *)
-            selected=$(cliphist list | rofi -dmenu -replace -config ~/.config/rofi/config-cliphist.rasi)
-            [ -z "$selected" ] && exit 0
-            echo "$selected" | cliphist decode | wl-copy
-        ;;
-    esac
-fi
+# Walker's clipboard provider (backed by elephant) handles browse/delete/wipe.
+exec "$HOME/.config/walker/launch.sh" -m clipboard -N -H

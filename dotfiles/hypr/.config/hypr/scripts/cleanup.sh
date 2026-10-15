@@ -38,7 +38,6 @@ fi
 
 
 # Remove gamemode flag
-if [ -f ~/.cache/gamemode ]; then
-    rm ~/.cache/gamemode
-    echo ":: ~/.cache/gamemode removed"
-fi
+# Gamemode never survives a login, so drop its stale flag (gamemode.sh
+# would otherwise think it is on and "deactivate" on the first press).
+rm -f ~/.config/matrix/settings/gamemode-enabled

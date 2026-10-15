@@ -12,7 +12,7 @@
 # ──────────────────────────────────────────────────────────
 
 DICT_DIR="$HOME/.stardict/dic"
-# Read active theme dynamically, fallback to spotlight-clean if missing
+# Read active theme dynamically, fallback to matrix-minimal if missing
 read -r WALKER_THEME < "$HOME/.config/matrix/settings/walker-theme" 2>/dev/null || WALKER_THEME="matrix-minimal"
 if [ -z "$WALKER_THEME" ]; then
     WALKER_THEME="matrix-minimal"

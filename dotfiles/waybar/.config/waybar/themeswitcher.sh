@@ -9,11 +9,6 @@
 # -----------------------------------------------------
 
 # -----------------------------------------------------
-# Load Launcher
-# -----------------------------------------------------
-launcher=$(cat $HOME/.config/ml4w/settings/launcher)
-
-# -----------------------------------------------------
 # Default theme folder
 # -----------------------------------------------------
 themes_path="$HOME/.config/waybar/themes"
@@ -58,32 +53,21 @@ _get_choice_walker() {
 }
 
 # -----------------------------------------------------
-# Use Rofi to select the theme
-# -----------------------------------------------------
-_get_choice_rofi() {
-    echo $(echo -e "$listNames" | rofi -dmenu -replace -i -config ~/.config/rofi/config-themes.rasi -no-show-icons -width 30 -p "Themes" -format i)
-}
-
-# -----------------------------------------------------
 # Show dialog
 # -----------------------------------------------------
 listNames=${listNames::-2}
 
-if [ "$launcher" == "walker" ]; then
-    choice=$(_get_choice_walker)
-else
-    choice=$(_get_choice_rofi)
-fi
+choice=$(_get_choice_walker)
 
 IFS="~"
 input=$listNames2
 read -ra array <<<"$input"
 
 # -----------------------------------------------------
-# Set new theme by writing the theme information to ~/.config/ml4w/settings/waybar-theme.sh
+# Set new theme by writing the theme information to ~/.config/matrix/settings/waybar-theme.sh
 # -----------------------------------------------------
 if [ "$choice" ]; then
     echo "Loading waybar theme..."
-    echo "${listThemes[$choice + 1]}" >~/.config/ml4w/settings/waybar-theme.sh
+    echo "${listThemes[$choice + 1]}" >~/.config/matrix/settings/waybar-theme.sh
     ~/.config/waybar/launch.sh
 fi

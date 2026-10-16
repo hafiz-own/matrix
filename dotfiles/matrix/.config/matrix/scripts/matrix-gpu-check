@@ -33,5 +33,12 @@ VK_LINE=$(~/.config/matrix/scripts/matrix-use-gpu vulkaninfo --summary 2>/dev/nu
 echo "  use-gpu vulkaninfo:${VK_LINE#*=}"
 timeout 5 ~/.config/matrix/scripts/matrix-use-gpu vkcube 2>&1 | grep -m1 -i 'selected\|gpu' || true
 echo -n "  dGPU power state right after vkcube: "; cat "$dgpu/power/runtime_status"
-sleep 10
-echo -n "  dGPU power state 10s later: "; cat "$dgpu/power/runtime_status"     # want: suspended
+# The driver waits ~20s of idleness before powering the dGPU down
+for i in $(seq 1 30); do
+    sleep 2
+    if [[ "$(<"$dgpu/power/runtime_status")" == suspended ]]; then
+        echo "  dGPU suspended again after $((i * 2))s"
+        exit 0
+    fi
+done
+echo "  dGPU still $(<"$dgpu/power/runtime_status") after 60s (something is holding it)"

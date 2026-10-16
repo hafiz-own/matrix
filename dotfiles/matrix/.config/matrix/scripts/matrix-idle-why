@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# DESC: Why isn't the system idling (dim/lock/screen off/suspend)?
+#       Lists everything that can hold hypridle off.
+
+echo "Windows inhibiting idle (app inhibitors and the fullscreen rule):"
+hyprctl clients -j | jq -r '.[] | select(.inhibitingIdle)
+    | "  \(.class)  [\(.title | .[0:50])]  monitor=\(.monitor) fullscreen=\(.fullscreen)"' \
+    | grep . || echo "  none"
+
+echo "systemd idle inhibitors:"
+systemd-inhibit --list --no-legend 2>/dev/null | awk '$6 ~ /idle/' | sed 's/^/  /' | grep . || echo "  none"
+
+echo -n "Caffeine: "
+pid_file="${XDG_RUNTIME_DIR:-/run/user/$UID}/caffeine.pid"
+[[ -f "$pid_file" ]] && kill -0 "$(<"$pid_file")" 2>/dev/null && echo "ON" || echo "off"
+
+echo -n "hypridle: "; systemctl --user is-active hypridle.service
+echo "Last hypridle events:"
+journalctl --user -u hypridle -n 200 --no-pager -o cat 2>/dev/null \
+    | grep -E 'Idled|Resumed|inhibit|locked|unlocked' | tail -6 | sed 's/^/  /'

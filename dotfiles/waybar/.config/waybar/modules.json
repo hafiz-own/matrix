@@ -242,6 +242,7 @@
   },
   // Network
   "network": {
+    "interface": "wlp*",
     "format": "{ifname}",
     "format-wifi": "  ",
     "format-ethernet": " {ifname}",

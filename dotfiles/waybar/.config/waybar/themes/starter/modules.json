@@ -265,6 +265,7 @@
 
     // Network
     "network": {
+        "interface": "wlp*",
         "format": "{ifname}",
         "format-wifi": "   {signalStrength}%",
         "format-ethernet": "  {ipaddr}",

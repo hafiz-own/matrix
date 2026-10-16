@@ -35,19 +35,24 @@ TIME_FILE="/tmp/matrix_screensaver_start"
 
 if [ "${1:-}" == "start" ]; then
     # Prevent multiple instances
-    if pgrep -f "kitty.*matrix-screensaver" >/dev/null; then
+    if pgrep -f "^kitty --class matrix-screensaver" >/dev/null; then
         exit 0
     fi
     
     # Record start time (nanoseconds)
     date +%s%N > "$TIME_FILE"
     
-    # Launch screensaver
-    kitty --start-as=fullscreen --class matrix-screensaver -e cmatrix -b -s &
+    # One screensaver per monitor: Hyprland places each window on its
+    # monitor via the exec rule; the matrix-screensaver window rule makes it
+    # fullscreen. Extra screens cost one kitty + cmatrix each, only while
+    # the screensaver runs.
+    for mon in $(hyprctl monitors -j | jq -r '.[].name'); do
+        hyprctl dispatch "hl.dsp.exec_cmd(\"kitty --class matrix-screensaver -e cmatrix -b -s\", { monitor = \"$mon\" })" >/dev/null
+    done
     
 elif [ "${1:-}" == "stop" ]; then
     # If the screensaver is not running, do nothing
-    if ! pgrep -f "kitty.*matrix-screensaver" >/dev/null; then
+    if ! pgrep -f "^kitty --class matrix-screensaver" >/dev/null; then
         exit 0
     fi
 
@@ -58,7 +63,7 @@ elif [ "${1:-}" == "stop" ]; then
     
     # If elapsed time is less than 500,000,000 ns (0.5 seconds), ignore it.
     if [ "$DIFF" -gt 500000000 ]; then
-        pkill -f "kitty.*matrix-screensaver"
+        pkill -f "^kitty --class matrix-screensaver"
     else
         echo "Ignored early stop request (fake Wayland event)." >> /tmp/matrix_screensaver_debug.log
     fi

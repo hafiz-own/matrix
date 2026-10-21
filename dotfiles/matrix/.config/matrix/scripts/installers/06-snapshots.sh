@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ~/.config/matrix/scripts/installers/04-snapshots.sh
+# ~/.config/matrix/scripts/installers/06-snapshots.sh
 # DESC: BTRFS System Snapshots Setup
 
 # DESC: Configures BTRFS snapshots using Snapper and integrates them with pacman hooks.

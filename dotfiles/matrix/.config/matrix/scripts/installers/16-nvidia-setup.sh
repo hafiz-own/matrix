@@ -116,8 +116,10 @@ fi
 
 # ── Install packages ──────────────────────────────────────────────────────────
 
-info "Syncing pacman databases..."
-sudo pacman -Sy --noconfirm
+# Full upgrade, not -Sy: syncing the databases and then installing without
+# upgrading is a partial upgrade, which Arch does not support.
+info "Upgrading the system..."
+sudo pacman -Syu --noconfirm
 
 info "Installing NVIDIA packages..."
 sudo pacman -S --needed --noconfirm \
@@ -139,9 +141,23 @@ fi
 sudo mkinitcpio -P
 success "Initramfs regenerated."
 
+# ── Runtime power management ─────────────────────────────────────────────────
+# Let the kernel power the dGPU down when nothing uses it. Without this rule
+# the PCI device stays at power/control=on and never runtime-suspends.
+
+info "Installing the NVIDIA runtime power-management udev rule..."
+PM_RULE="$HOME/.config/matrix/scripts/system-configs/80-nvidia-pm.rules"
+if [ -f "$PM_RULE" ]; then
+    sudo install -m 0644 "$PM_RULE" /etc/udev/rules.d/80-nvidia-pm.rules
+    sudo udevadm control --reload-rules
+    success "Installed /etc/udev/rules.d/80-nvidia-pm.rules (active after reboot)."
+else
+    warn "$PM_RULE not found; run fix-nvidia-pm.sh after stowing the dotfiles."
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 # NOTE: Hyprland environment.lua is left on default.lua (iGPU by default).
-# PRIME offload is used per-app via: matrix-use-gpu <command>
+# PRIME offload is used per-app via: use-gpu <command>
 # This means the desktop runs on the iGPU and only specific apps are offloaded
 # to the NVIDIA dGPU on demand. No global env changes needed.
 
@@ -155,6 +171,7 @@ echo "  ✅  nvidia-utils      installed"
 echo "  ✅  nvidia-settings   installed"
 echo "  ✅  nvidia-prime      installed"
 echo "  ✅  initramfs         regenerated"
+echo "  ✅  power management  dGPU sleeps when idle (after reboot)"
 echo ""
 echo "  Mode: PRIME Offload (iGPU default, dGPU on-demand)"
 echo "  Hyprland environment: unchanged (stays on iGPU)"

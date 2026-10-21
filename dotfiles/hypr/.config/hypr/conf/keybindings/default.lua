@@ -97,6 +97,13 @@ hl.bind("SUPER + F9",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh toggl
 hl.bind("SUPER + F10", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh prev"),   { locked = true, description = "Previous track" })
 hl.bind("SUPER + F11", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh next"),   { locked = true, description = "Next track" })
 hl.bind("SUPER + F12", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh stop"),   { locked = true, description = "Stop playback" })
+-- Standard media keys (keyboard Fn row, Bluetooth/wired headphone buttons)
+-- go through the same MPD-first / playerctl-fallback dispatcher.
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh toggle"), { locked = true, description = "Play/Pause (media key)" })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh pause"),  { locked = true, description = "Pause (media key)" })
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh next"),   { locked = true, description = "Next track (media key)" })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh prev"),   { locked = true, description = "Previous track (media key)" })
+hl.bind("XF86AudioStop",  hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh stop"),   { locked = true, description = "Stop playback (media key)" })
 
 -- MPD volume (also lazy-starts MPD if not running)
 hl.bind("SUPER + F7", hl.dsp.exec_cmd("~/.config/hypr/scripts/mpd_safe.sh volume +5%"), { locked = true, description = "MPD volume up" })

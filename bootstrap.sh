@@ -9,15 +9,15 @@
 # One command to go from bare Arch to a full Matrix desktop.
 #
 # Usage:
-#   bash <(curl -s https://raw.githubusercontent.com/hafiz-own/matrix/main/bootstrap.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/hafiz-own/matrix/main/bootstrap.sh)
 #
 # Or safer (audit first):
-#   curl -o bootstrap.sh https://raw.githubusercontent.com/hafiz-own/matrix/main/bootstrap.sh
+#   curl -fsSL -o bootstrap.sh https://raw.githubusercontent.com/hafiz-own/matrix/main/bootstrap.sh
 #   less bootstrap.sh
 #   bash bootstrap.sh
 
 set -Eeuo pipefail
-trap 'echo -e "\n\e[31m[!] Bootstrap failed on line $LINENO. Check output above.\e[0m" >&2' ERR
+trap 'echo -e "\n\e[31m[!] Bootstrap failed on line $LINENO. Full output: ~/.matrix-bootstrap.log\e[0m" >&2' ERR
 
 # ── Colors ───────────────────────────────────────────────────────────────────
 RED='\e[31m'; GREEN='\e[32m'; YELLOW='\e[33m'; BLUE='\e[34m'; BOLD='\e[1m'; NC='\e[0m'
@@ -31,6 +31,11 @@ step()    { echo -e "\n${BOLD}${BLUE}━━━ $1 ━━━${NC}"; }
 REPO_URL="https://github.com/hafiz-own/matrix"
 MATRIX_DIR="$HOME/.matrix"
 DOTFILES_DIR="$MATRIX_DIR/dotfiles"
+LOG_FILE="$HOME/.matrix-bootstrap.log"
+
+# Keep a full copy of the output; if something fails it is all in one file
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "=== Matrix bootstrap started $(date) ===" >>"$LOG_FILE"
 
 # ── Banner ───────────────────────────────────────────────────────────────────
 clear
@@ -67,13 +72,15 @@ fi
 success "Running as: $USER on Arch Linux with internet access."
 
 # ── Stage 1: Bootstrap git ───────────────────────────────────────────────────
-step "Stage 1: Ensuring git is available"
+step "Stage 1: Upgrading the system and ensuring git is available"
 
-if ! command -v git &>/dev/null; then
-    info "Installing git..."
-    sudo pacman -S --noconfirm --needed git
-fi
-success "git ready."
+# Sync and upgrade once before installing anything. Installing from a stale
+# database fails with 404s on a fresh install, and syncing without upgrading
+# is a partial upgrade, which Arch does not support.
+info "Upgrading the system (pacman -Syu)..."
+sudo pacman -Syu --noconfirm
+sudo pacman -S --needed --noconfirm git stow
+success "System up to date; git and stow ready."
 
 # ── Stage 2: Clone the repo ──────────────────────────────────────────────────
 step "Stage 2: Cloning Matrix dotfiles"
@@ -146,13 +153,26 @@ step "Stage 5: Deploying dotfiles via GNU Stow"
 
 info "Stowing all dotfile packages..."
 cd "$DOTFILES_DIR"
+CONFLICTS=()
 for pkg in */; do
     pkg="${pkg%/}"
     # systemd ignores drop-in dirs that are symlinks: never fold that package
     fold=(); [ "$pkg" = systemd ] && fold=(--no-folding)
-    stow "${fold[@]}" --target="$HOME" "$pkg" 2>/dev/null && echo "  ✔ $pkg" || warn "  Conflict in $pkg — skipping (run manually: stow --adopt $pkg)"
+    if out=$(stow "${fold[@]}" --target="$HOME" "$pkg" 2>&1); then
+        echo "  ✔ $pkg"
+    else
+        warn "  $pkg skipped: an existing file is in the way"
+        echo "$out" | grep -E 'existing target|cannot stow' | sed 's/^/      /' || true
+        CONFLICTS+=("$pkg")
+    fi
 done
-success "Dotfiles deployed. ~/.config entries are now symlinked into ~/.matrix/dotfiles/"
+if [ ${#CONFLICTS[@]} -eq 0 ]; then
+    success "Dotfiles deployed. ~/.config entries are now symlinked into ~/.matrix/dotfiles/"
+else
+    warn "Skipped packages: ${CONFLICTS[*]}"
+    warn "Move the files listed above out of the way, then run:"
+    warn "  cd ~/.matrix/dotfiles && stow --target=\$HOME ${CONFLICTS[*]}"
+fi
 
 
 # ── Stage 6: Enable services ─────────────────────────────────────────────────
@@ -189,13 +209,14 @@ echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━�
 echo -e "${BOLD}${GREEN}   Matrix Bootstrap Complete!               ${NC}"
 echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "  ${GREEN}✔${NC}  Core packages installed"
+echo -e "  ${GREEN}✔${NC}  System upgraded, core packages installed"
 echo -e "  ${GREEN}✔${NC}  Dotfiles deployed via stow"
-echo -e "  ${GREEN}✔${NC}  System configs placed"
-echo -e "  ${GREEN}✔${NC}  Services enabled"
+echo -e "  ${GREEN}✔${NC}  System and session services enabled"
+echo -e "  Log: ~/.matrix-bootstrap.log"
 echo ""
 echo -e "  ${BOLD}Next steps:${NC}"
 echo -e "  1. Run extras:  ${BOLD}~/.matrix/install-extras.sh${NC}"
 echo -e "     (shell setup, snapshots, fingerprint, NVIDIA, etc.)"
 echo -e "  2. Reboot:      ${BOLD}reboot${NC}"
+echo -e "  3. Log in on the TTY and start the desktop: ${BOLD}hypr${NC}"
 echo ""

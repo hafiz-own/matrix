@@ -61,14 +61,16 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hafiz-own/matrix/main/bootst
 | Stage | Action |
 |---|---|
 | 0 | Checks that you are not root, that the system is Arch Linux and that the internet is reachable |
-| 1 | Installs `git` if it is missing |
+| 1 | Upgrades the system (`pacman -Syu`) and installs `git` and `stow` |
 | 2 | Clones this repository to `~/.matrix` |
 | 3 | Builds and installs the `paru` AUR helper |
 | 4 | Installs the core packages from `packages/pacman-core.txt` and `packages/aur-core.txt`, then asks whether to install the optional lists |
 | 5 | Links every package in `dotfiles/` into your home directory with GNU Stow |
 | 6 | Enables NetworkManager, Bluetooth, tuned, PipeWire and the session's user units |
 
-Reboot when it finishes.
+Reboot when it finishes. The full output is saved to `~/.matrix-bootstrap.log`.
+
+AUR packages are built without stopping for review (`--noconfirm`). If you want to read each PKGBUILD first, install the packages in `packages/aur-core.txt` yourself with `paru -S` before running the bootstrap; it skips anything already installed.
 
 ### Manual installation
 

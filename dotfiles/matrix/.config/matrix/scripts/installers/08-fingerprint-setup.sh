@@ -48,8 +48,9 @@ echo -e "\e[1m=========================================\e[0m"
 echo ""
 echo "  This script will:"
 echo "   • Install fprintd + Broadcom ControlVault 3 driver"
-echo "   • Configure fingerprint auth for sudo, polkit, and hyprlock"
-echo "   • Patch hyprlock.conf to show fingerprint prompt on lock screen"
+echo "   • Configure fingerprint auth for sudo and polkit"
+echo "   • Keep hyprlock's PAM password-only (hyprlock reads the sensor itself)"
+echo "   • Keep the Broadcom reader out of USB autosuspend"
 echo ""
 
 if ! gum confirm "Proceed with fingerprint authentication setup?"; then
@@ -129,35 +130,36 @@ EOF
 fi
 pam_inject /etc/pam.d/polkit-1
 
-# Step 6: hyprlock PAM
+# Step 6: hyprlock PAM: password only
+# hyprlock.conf (in the repo) enables hyprlock's native fingerprint auth,
+# which talks to fprintd over D-Bus. If the hyprlock PAM stack also runs
+# pam_fprintd, both claim the reader ("Device was already claimed"), the
+# prompt shows only sometimes and hyprlock lingers after unlocking.
 echo ""
-info "Configuring PAM for hyprlock..."
-
-if [ ! -f /etc/pam.d/hyprlock ]; then
-    warn "No /etc/pam.d/hyprlock found — creating minimal one"
-    sudo tee /etc/pam.d/hyprlock >/dev/null <<'EOF'
+info "Configuring PAM for hyprlock (password only)..."
+if [ -f /etc/pam.d/hyprlock ] && grep -q "pam_fprintd.so" /etc/pam.d/hyprlock; then
+    sudo cp /etc/pam.d/hyprlock "/etc/pam.d/hyprlock.bak-$(date +%Y%m%d%H%M%S)"
+fi
+sudo tee /etc/pam.d/hyprlock >/dev/null <<'EOF'
 # PAM configuration file for hyprlock
-auth        include     login
+# Fingerprint is handled by hyprlock itself via D-Bus (fprintd).
+# This stack handles password authentication only.
+auth    include   login
 EOF
-fi
-pam_inject /etc/pam.d/hyprlock
+success "Configured: /etc/pam.d/hyprlock"
 
-# Step 7: hyprlock.conf fingerprint block
+# Step 7: keep the reader awake
+# libfprint lets the Broadcom ControlVault 3 (0a5c:5843) autosuspend, after
+# which it can stop answering until it is replugged.
 echo ""
-info "Patching hyprlock.conf..."
-
-HYPRLOCK_CONF="$HOME/.config/hypr/hyprlock.conf"
-
-if [ ! -f "$HYPRLOCK_CONF" ]; then
-    warn "hyprlock.conf not found at $HYPRLOCK_CONF — skipping"
-    warn "Add this block manually when you create your hyprlock.conf:"
-    printf '\nfingerprint {\n    enabled = true\n    ready_message = Touch the fingerprint sensor\n    present_message = Scanning...\n    error_message = Fingerprint not recognized\n}\n'
-elif grep -q "fingerprint {" "$HYPRLOCK_CONF"; then
-    info "hyprlock.conf already has fingerprint block — skipping"
-else
-    printf '\nfingerprint {\n    enabled = true\n    ready_message = Touch the fingerprint sensor\n    present_message = Scanning...\n    error_message = Fingerprint not recognized\n}\n' >> "$HYPRLOCK_CONF"
-    success "Fingerprint block added to hyprlock.conf"
-fi
+info "Disabling USB autosuspend for the Broadcom reader..."
+sudo tee /etc/udev/rules.d/90-broadcom-fingerprint-power.rules >/dev/null <<'EOF'
+# Override libfprint's autosuspend for Broadcom ControlVault 3 (0a5c:5843).
+ACTION=="add|change", SUBSYSTEM=="usb", ATTRS{idVendor}=="0a5c", ATTRS{idProduct}=="5843", TEST=="power/control", ATTR{power/control}="on"
+EOF
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=change --subsystem-match=usb --attr-match=idVendor=0a5c
+success "Reader kept out of autosuspend"
 
 # Done
 echo ""
@@ -167,7 +169,7 @@ echo -e "\e[1m\e[32m=========================================\e[0m"
 echo ""
 echo "  ✅  sudo      → tap sensor instead of typing password"
 echo "  ✅  polkit    → tap sensor for GUI privilege prompts"
-echo "  ✅  hyprlock  → tap sensor to unlock the screen"
+echo "  ✅  hyprlock  → tap sensor to unlock the screen (built into hyprlock.conf)"
 echo ""
 echo "  Next step: enroll your fingerprints"
 echo "  Run: fingerprint enroll"

@@ -2,6 +2,7 @@
 hyprland
 uwsm
 xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
 xdg-utils
 hyprlock
 hypridle
@@ -81,9 +82,11 @@ unzip
 mpv
 mpd
 mpc
+playerctl
 ncmpcpp
 loupe
 gpu-screen-recorder
+v4l-utils
 yt-dlp
 
 # ── File Viewers ───────────────────────────────────
@@ -101,6 +104,8 @@ ripgrep
 
 # ── System Tools ───────────────────────────────────
 brightnessctl
+btop
+upower
 nvtop
 xorg-xhost
 
@@ -116,6 +121,7 @@ libva-intel-driver
 
 # ── Wayland Misc ───────────────────────────────────
 wtype
+nwg-displays
 
 # ── Network Tools ──────────────────────────────────
 nmap

@@ -1,10 +1,6 @@
 [Unit]
 Description=Rclone Google Drive HO27 Mount
 After=default.target
-# Give up after 5 failed starts in 10 min (e.g. expired token) instead of
-# retrying every 5 s forever; retries back off from 30 s up to 10 min.
-StartLimitIntervalSec=10min
-StartLimitBurst=5
 
 [Service]
 Type=notify
@@ -27,14 +23,9 @@ ExecStart=/usr/bin/rclone mount gdrive_ho27: /home/gdrive_ho27 \
   --transfers 4 \
   --checkers 8 \
   --cache-dir %h/.cache/rclone/gdrive_ho27
-# Desktop notification on the first failed start, and when it recovers
-ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "Google Drive (HO27)"
-ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "Google Drive (HO27)"
 ExecStop=/usr/bin/fusermount3 -uz /home/gdrive_ho27
 Restart=on-failure
-RestartSec=30
-RestartSteps=5
-RestartMaxDelaySec=10min
+RestartSec=5
 
 [Install]
 WantedBy=default.target

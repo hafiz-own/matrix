@@ -1,10 +1,6 @@
 [Unit]
 Description=Rclone MEGA Mount
 After=default.target
-# Give up after 5 failed starts in 10 min (e.g. expired token) instead of
-# retrying every 5 s forever; retries back off from 30 s up to 10 min.
-StartLimitIntervalSec=10min
-StartLimitBurst=5
 
 [Service]
 Type=notify
@@ -25,14 +21,9 @@ ExecStart=/usr/bin/rclone mount mega: /home/mega \
   --transfers 4 \
   --checkers 8 \
   --cache-dir %h/.cache/rclone/mega
-# Desktop notification on the first failed start, and when it recovers
-ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "MEGA drive"
-ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "MEGA drive"
 ExecStop=/usr/bin/fusermount3 -uz /home/mega
 Restart=on-failure
-RestartSec=30
-RestartSteps=5
-RestartMaxDelaySec=10min
+RestartSec=5
 
 [Install]
 WantedBy=default.target

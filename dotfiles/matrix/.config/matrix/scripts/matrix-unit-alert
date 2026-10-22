@@ -2,8 +2,12 @@
 # DESC: Desktop notification when a background service fails, and when it
 #       recovers. Meant for systemd units:
 #
-#   ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "Label"
-#   ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "Label"
+#   ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed %n
+#   ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok %n
+#
+# With %n (the unit name) the label is the unit's Description; a plain
+# string can be passed instead. All rclone-*.service
+# mounts get these hooks from systemd/.../rclone-.service.d/matrix-alert.conf.
 #
 # "failed" alerts only when systemd reports the run did not succeed
 # ($SERVICE_RESULT), and only once until the unit is healthy again, so a
@@ -13,8 +17,19 @@
 # fail before the desktop and its notification daemon are up.
 
 mode=${1:-}
-label=${2:-${UNIT:-a service}}
-unit=${MONITOR_UNIT:-${UNIT:-unknown}}
+# Second argument: a unit name (pass %n from the unit) or a plain label.
+# For a unit name the label is its Description (e.g. "Rclone MEGA Mount").
+arg=${2:-}
+unit=unknown label=
+if [[ "$arg" == *.service ]]; then
+    unit=$arg
+else
+    label=$arg
+fi
+if [[ -z "$label" && "$unit" != unknown ]]; then
+    label=$(systemctl --user show -p Description --value "$unit" 2>/dev/null)
+fi
+label=${label:-$unit}
 state_dir="${XDG_RUNTIME_DIR:-/run/user/$UID}/matrix-unit-alert"
 flag="$state_dir/${label//[^A-Za-z0-9_.-]/_}"
 mkdir -p "$state_dir"
@@ -34,7 +49,7 @@ case "$mode" in
         [[ -e "$flag" ]] && exit 0                 # already reported
         touch "$flag"
         notify -u critical -i dialog-error "$label is not working" \
-            "Retrying in the background. Details: journalctl --user -u ${UNIT:-$unit} -b"
+            "Retrying in the background. Details: journalctl --user -u $unit -b"
         ;;
     ok)
         if [[ -e "$flag" ]]; then
@@ -43,7 +58,7 @@ case "$mode" in
         fi
         ;;
     *)
-        echo "Usage: $0 failed|ok \"Label\"" >&2
+        echo "Usage: $0 failed|ok <unit.service|label>" >&2
         exit 1
         ;;
 esac

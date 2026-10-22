@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# DESC: Desktop notification when a background service fails, and when it
+#       recovers. Meant for systemd units:
+#
+#   ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "Label"
+#   ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "Label"
+#
+# "failed" alerts only when systemd reports the run did not succeed
+# ($SERVICE_RESULT), and only once until the unit is healthy again, so a
+# unit that keeps retrying does not spam. "ok" clears that state and, if a
+# failure had been reported, says it recovered. Notifications wait (up to
+# 1 minute) for the graphical session, since units like drive mounts can
+# fail before the desktop and its notification daemon are up.
+
+mode=${1:-}
+label=${2:-${UNIT:-a service}}
+unit=${MONITOR_UNIT:-${UNIT:-unknown}}
+state_dir="${XDG_RUNTIME_DIR:-/run/user/$UID}/matrix-unit-alert"
+flag="$state_dir/${label//[^A-Za-z0-9_.-]/_}"
+mkdir -p "$state_dir"
+
+notify() {
+    # Wait for the desktop session so the notification is actually shown
+    for _ in $(seq 1 30); do
+        systemctl --user -q is-active graphical-session.target && break
+        sleep 2
+    done
+    notify-send -a "System" "$@" || true
+}
+
+case "$mode" in
+    failed)
+        [[ "${SERVICE_RESULT:-success}" == "success" ]] && exit 0
+        [[ -e "$flag" ]] && exit 0                 # already reported
+        touch "$flag"
+        notify -u critical -i dialog-error "$label is not working" \
+            "Retrying in the background. Details: journalctl --user -u ${UNIT:-$unit} -b"
+        ;;
+    ok)
+        if [[ -e "$flag" ]]; then
+            rm -f "$flag"
+            notify -u low -i emblem-ok-symbolic "$label is working again" ""
+        fi
+        ;;
+    *)
+        echo "Usage: $0 failed|ok \"Label\"" >&2
+        exit 1
+        ;;
+esac
+exit 0

@@ -27,6 +27,9 @@ ExecStart=/usr/bin/rclone mount gdrive: /home/gdrive \
   --transfers 4 \
   --checkers 8 \
   --cache-dir %h/.cache/rclone/gdrive
+# Desktop notification on the first failed start, and when it recovers
+ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "Google Drive"
+ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "Google Drive"
 ExecStop=/usr/bin/fusermount3 -uz /home/gdrive
 Restart=on-failure
 RestartSec=30

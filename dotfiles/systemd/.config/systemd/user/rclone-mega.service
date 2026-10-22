@@ -25,6 +25,9 @@ ExecStart=/usr/bin/rclone mount mega: /home/mega \
   --transfers 4 \
   --checkers 8 \
   --cache-dir %h/.cache/rclone/mega
+# Desktop notification on the first failed start, and when it recovers
+ExecStartPost=%h/.config/matrix/scripts/matrix-unit-alert ok "MEGA drive"
+ExecStopPost=%h/.config/matrix/scripts/matrix-unit-alert failed "MEGA drive"
 ExecStop=/usr/bin/fusermount3 -uz /home/mega
 Restart=on-failure
 RestartSec=30

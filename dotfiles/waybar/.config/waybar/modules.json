@@ -34,7 +34,7 @@
       "class<google-chrome>": "",
       "class<antigravity>": "",
 	    "class<antigravity-ide>": "",
-      "class<code>": "",
+      "class<com.microsoft.VSCode>": "",
       "class<code-url-handler>": "",
       "class<cursor>": "",
       "class<jetbrains-.*>": "",

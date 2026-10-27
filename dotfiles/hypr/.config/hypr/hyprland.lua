@@ -12,7 +12,7 @@ require("functions")
 require("monitors")
 require("conf.monitor")
 require("conf.lid")
--- require("conf.display-mode")
+require("conf.display-mode")
 
 -- INPUT
 require("input")

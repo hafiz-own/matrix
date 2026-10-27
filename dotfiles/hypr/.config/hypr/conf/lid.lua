@@ -1,32 +1,21 @@
 -- -----------------------------------------------------
 -- Lid switch
 -- Closing the lid with an external monitor connected turns the laptop
--- panel off (logind's HandleLidSwitchDocked=ignore keeps the system awake).
+-- panel off (logind's HandleLidSwitchDocked=ignore keeps the system awake),
+-- un-mirroring first so Mirror mode does not crash Hyprland.
 -- Without an external monitor nothing happens here and logind handles the
 -- lid as usual (suspend). Opening the lid re-applies monitors.lua.
 -- -----------------------------------------------------
-local LAPTOP = "eDP-1"
-local MONITORS = os.getenv("HOME") .. "/.config/hypr/monitors.lua"
-
-local function external_connected()
-    for _, m in ipairs(hl.get_monitors()) do
-        if m.name ~= LAPTOP then
-            return true
-        end
-    end
-    return false
-end
+local display = require("conf.display")
 
 hl.bind("switch:on:Lid Switch", function ()
-    if external_connected() then
-        hl.monitor({ output = LAPTOP, disabled = true })
+    local ext = display.external()
+    if ext then
+        display.laptop_off(ext)
+        display.mode = "External only"
     end
 end, { locked = true, description = "Lid closed: disable laptop panel if docked" })
 
 hl.bind("switch:off:Lid Switch", function ()
-    -- Re-run the nwg-displays layout so the panel gets its saved mode/position
-    local ok = pcall(dofile, MONITORS)
-    if not ok then
-        hl.monitor({ output = LAPTOP, mode = "preferred", position = "auto", scale = 1 })
-    end
+    display.extend(display.external())
 end, { locked = true, description = "Lid opened: re-enable laptop panel" })

@@ -1,69 +1,73 @@
 -- -----------------------------------------------------
--- Display mode (F8 / SUPER + P)
--- Dell's F8 "switch display" key sends SUPER + P, like Windows' Win+P.
+-- Display mode (Fn+F8 sends SUPER + P, like Windows' Win+P)
 -- Each press cycles: Extend -> Mirror -> External only -> Laptop only.
--- Extend re-applies monitors.lua (the nwg-displays layout).
+-- SUPER + SHIFT + P (keybindings) reloads Hyprland = back to monitors.lua.
 -- -----------------------------------------------------
-local LAPTOP = "eDP-1"
-local MONITORS = os.getenv("HOME") .. "/.config/hypr/monitors.lua"
+local display = require("conf.display")
+local LAPTOP = display.LAPTOP
+
+-- Testing: fall back to Extend after this many ms unless the mode is
+-- confirmed with another press. Set to nil once every mode is verified.
+local REVERT_MS = 15000
 
 local MODES = { "Extend", "Mirror", "External only", "Laptop only" }
-local current = 1
-local external = nil -- remembered so "Laptop only" can bring it back
+local generation = 0 -- cancels stale revert timers
 
-local function find_external()
-    for _, m in ipairs(hl.get_monitors()) do
-        if m.name ~= LAPTOP then
-            return m.name
-        end
-    end
-    return external
-end
-
-local function notify(title, body)
+local function notify(body)
     hl.dispatch(hl.dsp.exec_cmd(
-        "notify-send --urgency=low --expire-time=1500 --icon=video-display-symbolic"
-        .. " --hint=string:synchronous:display-mode --transient"
-        .. " '" .. title .. "' '" .. body .. "'"
+        "notify-send --urgency=low --expire-time=2000 --icon=video-display-symbolic"
+        .. " --hint=string:synchronous:display-mode --transient 'Display' '" .. body .. "'"
     ))
 end
 
-local function extend()
-    local ok = pcall(dofile, MONITORS)
-    if not ok then
-        hl.monitor({ output = LAPTOP, mode = "preferred", position = "auto", scale = 1 })
-        hl.monitor({ output = external, mode = "preferred", position = "auto", scale = 1 })
-    end
-end
-
 local apply = {
-    ["Extend"] = extend,
-    ["Mirror"] = function ()
-        hl.monitor({ output = LAPTOP, mode = "preferred", position = "auto", scale = 1 })
-        hl.monitor({ output = external, mode = "preferred", position = "auto", scale = 1, mirror = LAPTOP })
+    ["Extend"] = function (ext) display.extend(ext) end,
+    ["Mirror"] = function (ext)
+        display.enable(LAPTOP)
+        display.enable(ext, { mirror = LAPTOP })
     end,
-    ["External only"] = function ()
-        hl.monitor({ output = external, mode = "preferred", position = "auto", scale = 1 })
-        hl.monitor({ output = LAPTOP, disabled = true })
-    end,
-    ["Laptop only"] = function ()
-        hl.monitor({ output = LAPTOP, mode = "preferred", position = "auto", scale = 1 })
-        hl.monitor({ output = external, disabled = true })
+    ["External only"] = function (ext) display.laptop_off(ext) end,
+    ["Laptop only"] = function (ext)
+        display.enable(LAPTOP)
+        hl.monitor({ output = ext, disabled = true })
     end,
 }
 
+local function set_mode(name, ext)
+    apply[name](ext)
+    display.mode = name
+    generation = generation + 1
+    if REVERT_MS and name ~= "Extend" then
+        local gen = generation
+        notify(name .. " (reverts in " .. REVERT_MS // 1000 .. " s)")
+        hl.timer(function ()
+            if gen == generation then
+                display.extend(display.external())
+                generation = generation + 1
+                notify("Extend (reverted)")
+            end
+        end, { timeout = REVERT_MS, type = "oneshot" })
+    else
+        notify(name)
+    end
+end
+
 local function cycle()
-    external = find_external()
-    if not external then
-        notify("Display", "No external display connected")
+    local ext = display.external()
+    if not ext then
+        notify("No external display connected")
         return
     end
-    -- Leave mirror/disabled state cleanly before applying the next mode
-    extend()
-    current = current % #MODES + 1
-    apply[MODES[current]]()
-    notify("Display: " .. MODES[current], external)
+    local i = 1
+    for k, name in ipairs(MODES) do
+        if name == display.mode then i = k end
+    end
+    local next = MODES[i % #MODES + 1]
+    -- Laptop only with the lid shut would leave no visible output
+    if next == "Laptop only" and display.lid_closed() then
+        next = "Extend"
+    end
+    set_mode(next, ext)
 end
 
 hl.bind("SUPER + P", cycle, { description = "Cycle display mode (Extend/Mirror/External/Laptop)" })
-hl.bind("XF86Display", cycle, { description = "Cycle display mode (Extend/Mirror/External/Laptop)" })

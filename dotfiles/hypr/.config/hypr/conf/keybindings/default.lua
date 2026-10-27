@@ -63,6 +63,7 @@ hl.bind(mainMod .. " + ALT + down", hl.dsp.window.swap({ direction = "d" }), { d
 -- Actions
 hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("hyprctl reload"), { description = "Reload Hyprland configuration" })
 hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("~/.config/hypr/scripts/keybindings.sh"), { description = "Show keybindings" })
+hl.bind(mainMod .. " + P", function() end, { description = "Fn+F8 (sends Super+P): swallowed, display switcher not loaded" })
 hl.bind(mainMod .. " + SHIFT + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/toggle-animations.sh"), { description = "Toggle animations" })
 hl.bind("PRINT", hl.dsp.exec_cmd("~/.config/matrix/scripts/matrix-capture-ui.sh"), { description = "Matrix Capture (Screenshot/OCR/Record)" })
 hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/.config/walker/launch.sh"), { description = "Open application launcher" })

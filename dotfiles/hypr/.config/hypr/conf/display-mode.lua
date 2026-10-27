@@ -52,6 +52,8 @@ local function set_mode(name, ext)
     end
 end
 
+display.set_mode = set_mode -- for hyprctl eval
+
 local function cycle()
     local ext = display.external()
     if not ext then

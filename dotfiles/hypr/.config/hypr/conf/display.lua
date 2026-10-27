@@ -3,7 +3,7 @@
 -- Hyprland 0.56.2 crashes when a mirror source is disabled, and
 -- hl.get_monitors() omits disabled and mirrored outputs, so:
 --  - connectors are read from /sys/class/drm
---  - every re-enabled output gets disabled = false and no mirror
+--  - every re-enabled output gets disabled = false and mirror = ""
 --  - the laptop panel is only disabled after un-mirroring, one frame later
 -- -----------------------------------------------------
 local M = {}
@@ -58,7 +58,7 @@ function M.enable(output, extra)
     local s = {}
     for k, v in pairs(spec) do s[k] = v end
     s.disabled = false
-    s.mirror = nil
+    s.mirror = "" -- nil keeps an old mirror; "" clears it
     for k, v in pairs(extra or {}) do s[k] = v end
     hl.monitor(s)
 end

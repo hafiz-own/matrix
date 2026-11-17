@@ -171,7 +171,22 @@
     "format": "{:%d %b | %H:%M:%S | %a}",
     "interval": 1,
     "timezone": "",
-    "tooltip": false
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "mode-mon-col": 3,
+      "on-scroll": 1,
+      "format": {
+        "months": "<span color='#ffffff'><b>{}</b></span>",
+        "weekdays": "<span color='#888888'><b>{}</b></span>",
+        "today": "<span color='#dc2f2f'><b><u>{}</u></b></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-up": "shift_down",
+      "on-scroll-down": "shift_up"
+    }
   },
   // Lyrics
   "custom/lyrics": {

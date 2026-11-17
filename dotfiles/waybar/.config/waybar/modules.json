@@ -17,7 +17,7 @@
     "window-rewrite-default": "·",
     "window-rewrite": {
       "Class<org.gnome.TextEditor>": "󱩽",
-      "class<org.gnome.Evince>": "",
+      "class<org.gnome.Papers>": "",
       "class<kitty>": "",
       "class<Alacritty>": "",
       "class<foot>": "",

@@ -90,7 +90,7 @@ v4l-utils
 yt-dlp
 
 # ── File Viewers ───────────────────────────────────
-evince
+papers
 
 # ── Dev / Build ────────────────────────────────────
 git

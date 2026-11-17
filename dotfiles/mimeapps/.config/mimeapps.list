@@ -9,7 +9,7 @@ image/bmp=org.gnome.Loupe.desktop
 image/tiff=org.gnome.Loupe.desktop
 image/svg+xml=org.gnome.Loupe.desktop
 
-application/pdf=org.gnome.Evince.desktop
+application/pdf=org.gnome.Papers.desktop
 
 x-scheme-handler/http=brave-browser.desktop
 x-scheme-handler/https=brave-browser.desktop
